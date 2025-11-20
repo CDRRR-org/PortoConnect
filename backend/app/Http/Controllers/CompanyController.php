@@ -1,0 +1,130 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Mahasiswa;
+use App\Models\Portofolio;
+use App\Models\SearchHistory;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+
+class CompanyController extends Controller
+{
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            if ($request->user()->role !== 'perusahaan') {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+            return $next($request);
+        });
+    }
+
+    public function searchStudents(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'keyword' => 'nullable|string|max:255',
+            'skill' => 'nullable|string|max:255',
+            'jurusan' => 'nullable|string|max:255',
+            'fakultas' => 'nullable|string|max:255',
+            'universitas' => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $perusahaan = $request->user()->perusahaan;
+        
+        if (!$perusahaan) {
+            return response()->json(['message' => 'Profil perusahaan tidak ditemukan'], 404);
+        }
+
+        $query = Mahasiswa::with(['user', 'portofolio', 'skills', 'experiences'])
+            ->whereHas('portofolio', function($q) {
+                $q->where('is_public', true);
+            })
+            ->where('is_verified', true);
+
+        // Search by keyword (name, NIM, description)
+        if ($request->has('keyword') && $request->keyword) {
+            $keyword = $request->keyword;
+            $query->where(function($q) use ($keyword) {
+                $q->where('nim', 'like', "%{$keyword}%")
+                  ->orWhere('deskripsi_diri', 'like', "%{$keyword}%")
+                  ->orWhereHas('user', function($userQuery) use ($keyword) {
+                      $userQuery->where('name', 'like', "%{$keyword}%");
+                  });
+            });
+        }
+
+        // Filter by skill
+        if ($request->has('skill') && $request->skill) {
+            $query->whereHas('skills', function($q) use ($request) {
+                $q->where('nama', 'like', "%{$request->skill}%");
+            });
+        }
+
+        // Filter by jurusan
+        if ($request->has('jurusan') && $request->jurusan) {
+            $query->where('jurusan', 'like', "%{$request->jurusan}%");
+        }
+
+        // Filter by fakultas
+        if ($request->has('fakultas') && $request->fakultas) {
+            $query->where('fakultas', 'like', "%{$request->fakultas}%");
+        }
+
+        // Filter by universitas
+        if ($request->has('universitas') && $request->universitas) {
+            $query->where('universitas', 'like', "%{$request->universitas}%");
+        }
+
+        $results = $query->paginate(12);
+
+        // Save search history
+        SearchHistory::create([
+            'perusahaan_id' => $perusahaan->id,
+            'keyword' => $request->keyword,
+            'filters' => $request->only(['skill', 'jurusan', 'fakultas', 'universitas']),
+            'results_count' => $results->total(),
+        ]);
+
+        return response()->json($results);
+    }
+
+    public function getStudentPortfolio($id, Request $request)
+    {
+        $mahasiswa = Mahasiswa::with(['user', 'portofolio', 'projects', 'skills', 'certificates', 'experiences'])
+            ->where('id', $id)
+            ->whereHas('portofolio', function($q) {
+                $q->where('is_public', true);
+            })
+            ->first();
+
+        if (!$mahasiswa) {
+            return response()->json(['message' => 'Portofolio tidak ditemukan atau tidak publik'], 404);
+        }
+
+        return response()->json(['mahasiswa' => $mahasiswa]);
+    }
+
+    public function getSearchHistory(Request $request)
+    {
+        $perusahaan = $request->user()->perusahaan;
+        
+        if (!$perusahaan) {
+            return response()->json(['message' => 'Profil perusahaan tidak ditemukan'], 404);
+        }
+
+        $histories = $perusahaan->searchHistories()
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        return response()->json($histories);
+    }
+}
+
