@@ -9,6 +9,7 @@ class Skill extends Model
 {
     protected $fillable = [
         'mahasiswa_id',
+        'portofolio_id',
         'nama',
         'level',
         'urutan',
@@ -17,6 +18,11 @@ class Skill extends Model
     public function mahasiswa(): BelongsTo
     {
         return $this->belongsTo(Mahasiswa::class);
+    }
+
+    public function portofolio(): BelongsTo
+    {
+        return $this->belongsTo(Portofolio::class);
     }
 }
 

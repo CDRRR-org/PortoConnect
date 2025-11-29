@@ -42,15 +42,30 @@ class ProjectController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
+            'portofolio_id' => 'nullable|exists:portofolios,id',
             'judul' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
-            'link' => 'nullable|url',
+            'link' => ['nullable', function ($attribute, $value, $fail) {
+                if (!empty($value) && !filter_var($value, FILTER_VALIDATE_URL) && !preg_match('/^https?:\/\//', $value)) {
+                    $fail('Link harus berupa URL yang valid (contoh: http://example.com atau https://example.com)');
+                }
+            }],
             'gambar' => 'nullable|string',
             'teknologi' => 'nullable|string',
             'tanggal_mulai' => 'nullable|date',
             'tanggal_selesai' => 'nullable|date|after_or_equal:tanggal_mulai',
             'urutan' => 'nullable|integer',
         ]);
+
+        // Validate portofolio belongs to mahasiswa if provided
+        if ($request->has('portofolio_id')) {
+            $portofolio = $mahasiswa->portofolios()->find($request->portofolio_id);
+            if (!$portofolio) {
+                return response()->json([
+                    'message' => 'Portofolio tidak ditemukan atau tidak dimiliki oleh mahasiswa ini'
+                ], 404);
+            }
+        }
 
         if ($validator->fails()) {
             return response()->json([
@@ -85,15 +100,30 @@ class ProjectController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
+            'portofolio_id' => 'nullable|exists:portofolios,id',
             'judul' => 'sometimes|required|string|max:255',
             'deskripsi' => 'nullable|string',
-            'link' => 'nullable|url',
+            'link' => ['nullable', function ($attribute, $value, $fail) {
+                if (!empty($value) && !filter_var($value, FILTER_VALIDATE_URL) && !preg_match('/^https?:\/\//', $value)) {
+                    $fail('Link harus berupa URL yang valid (contoh: http://example.com atau https://example.com)');
+                }
+            }],
             'gambar' => 'nullable|string',
             'teknologi' => 'nullable|string',
             'tanggal_mulai' => 'nullable|date',
             'tanggal_selesai' => 'nullable|date|after_or_equal:tanggal_mulai',
             'urutan' => 'nullable|integer',
         ]);
+
+        // Validate portofolio belongs to mahasiswa if provided
+        if ($request->has('portofolio_id')) {
+            $portofolio = $mahasiswa->portofolios()->find($request->portofolio_id);
+            if (!$portofolio) {
+                return response()->json([
+                    'message' => 'Portofolio tidak ditemukan atau tidak dimiliki oleh mahasiswa ini'
+                ], 404);
+            }
+        }
 
         if ($validator->fails()) {
             return response()->json([

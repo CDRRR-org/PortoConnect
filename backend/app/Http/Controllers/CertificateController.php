@@ -42,6 +42,7 @@ class CertificateController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
+            'portofolio_id' => 'nullable|exists:portofolios,id',
             'nama' => 'required|string|max:255',
             'penerbit' => 'required|string|max:255',
             'tanggal_terbit' => 'required|date',
@@ -56,6 +57,16 @@ class CertificateController extends Controller
                 'message' => 'Validasi gagal',
                 'errors' => $validator->errors()
             ], 422);
+        }
+
+        // Validate portofolio belongs to mahasiswa if provided
+        if ($request->has('portofolio_id')) {
+            $portofolio = $mahasiswa->portofolios()->find($request->portofolio_id);
+            if (!$portofolio) {
+                return response()->json([
+                    'message' => 'Portofolio tidak ditemukan atau tidak dimiliki oleh mahasiswa ini'
+                ], 404);
+            }
         }
 
         $certificate = $mahasiswa->certificates()->create($request->all());
@@ -84,6 +95,7 @@ class CertificateController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
+            'portofolio_id' => 'nullable|exists:portofolios,id',
             'nama' => 'sometimes|required|string|max:255',
             'penerbit' => 'sometimes|required|string|max:255',
             'tanggal_terbit' => 'sometimes|required|date',
@@ -92,6 +104,16 @@ class CertificateController extends Controller
             'link' => 'nullable|url',
             'urutan' => 'nullable|integer',
         ]);
+
+        // Validate portofolio belongs to mahasiswa if provided
+        if ($request->has('portofolio_id')) {
+            $portofolio = $mahasiswa->portofolios()->find($request->portofolio_id);
+            if (!$portofolio) {
+                return response()->json([
+                    'message' => 'Portofolio tidak ditemukan atau tidak dimiliki oleh mahasiswa ini'
+                ], 404);
+            }
+        }
 
         if ($validator->fails()) {
             return response()->json([

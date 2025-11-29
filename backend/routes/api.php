@@ -36,9 +36,16 @@ Route::middleware(['auth:sanctum', 'activity.log'])->group(function () {
         Route::get('/profile', [MahasiswaController::class, 'show']);
         Route::put('/profile', [MahasiswaController::class, 'update']);
         
-        Route::get('/portfolio', [PortfolioController::class, 'index']);
-        Route::put('/portfolio', [PortfolioController::class, 'update']);
-        Route::post('/portfolio/generate-link', [PortfolioController::class, 'generatePublicLink']);
+        // Portfolio routes - support multiple portfolios
+        Route::get('/portfolios', [PortfolioController::class, 'index']); // List all portfolios
+        Route::post('/portfolios', [PortfolioController::class, 'store']); // Create new portfolio
+        Route::get('/portfolios/{id}', [PortfolioController::class, 'show']); // Get single portfolio
+        Route::put('/portfolios/{id}', [PortfolioController::class, 'update']); // Update portfolio
+        Route::delete('/portfolios/{id}', [PortfolioController::class, 'destroy']); // Delete portfolio
+        Route::post('/portfolios/{id}/generate-link', [PortfolioController::class, 'generatePublicLink']); // Generate public link
+        
+        // Legacy routes (for backward compatibility)
+        Route::get('/portfolio', [PortfolioController::class, 'index']); // Redirect to portfolios list
         
         Route::apiResource('projects', ProjectController::class);
         Route::apiResource('skills', SkillController::class);

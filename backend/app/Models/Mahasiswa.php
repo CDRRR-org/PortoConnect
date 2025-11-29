@@ -41,6 +41,11 @@ class Mahasiswa extends Model
         return $this->hasOne(Portofolio::class);
     }
 
+    public function portofolios(): HasMany
+    {
+        return $this->hasMany(Portofolio::class);
+    }
+
     public function projects(): HasMany
     {
         return $this->hasMany(Project::class);

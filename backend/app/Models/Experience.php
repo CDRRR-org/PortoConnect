@@ -9,6 +9,7 @@ class Experience extends Model
 {
     protected $fillable = [
         'mahasiswa_id',
+        'portofolio_id',
         'judul',
         'perusahaan',
         'deskripsi',
@@ -28,6 +29,11 @@ class Experience extends Model
     public function mahasiswa(): BelongsTo
     {
         return $this->belongsTo(Mahasiswa::class);
+    }
+
+    public function portofolio(): BelongsTo
+    {
+        return $this->belongsTo(Portofolio::class);
     }
 }
 
