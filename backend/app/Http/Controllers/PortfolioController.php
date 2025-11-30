@@ -281,9 +281,7 @@ class PortfolioController extends Controller
             ->whereNotNull('public_link')
             ->with([
                 'mahasiswa.user',
-                'skills' => function($q) {
-                    $q->limit(5); // Limit skills untuk preview
-                }
+                'skills' // Load all skills, not limited, for proper filtering
             ]);
 
         // Filter by bidang if provided

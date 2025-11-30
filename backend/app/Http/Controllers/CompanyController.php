@@ -10,16 +10,6 @@ use Illuminate\Support\Facades\Validator;
 
 class CompanyController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware(function ($request, $next) {
-            if ($request->user()->role !== 'perusahaan') {
-                return response()->json(['message' => 'Unauthorized'], 403);
-            }
-            return $next($request);
-        });
-    }
-
     public function searchStudents(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -43,11 +33,13 @@ class CompanyController extends Controller
             return response()->json(['message' => 'Profil perusahaan tidak ditemukan'], 404);
         }
 
-        $query = Mahasiswa::with(['user', 'portofolio', 'skills', 'experiences'])
-            ->whereHas('portofolio', function($q) {
+        $query = Mahasiswa::with(['user', 'portofolios' => function($q) {
                 $q->where('is_public', true);
-            })
-            ->where('is_verified', true);
+            }])
+            ->whereHas('portofolios', function($q) {
+                $q->where('is_public', true);
+            });
+            // Removed is_verified filter to allow searching all students with public portfolios
 
         // Search by keyword (name, NIM, description)
         if ($request->has('keyword') && $request->keyword) {
@@ -57,14 +49,24 @@ class CompanyController extends Controller
                   ->orWhere('deskripsi_diri', 'like', "%{$keyword}%")
                   ->orWhereHas('user', function($userQuery) use ($keyword) {
                       $userQuery->where('name', 'like', "%{$keyword}%");
+                  })
+                  ->orWhereHas('portofolios', function($portfolioQuery) use ($keyword) {
+                      $portfolioQuery->where('is_public', true)
+                          ->where(function($pq) use ($keyword) {
+                              $pq->where('nama', 'like', "%{$keyword}%")
+                                 ->orWhere('deskripsi', 'like', "%{$keyword}%");
+                          });
                   });
             });
         }
 
-        // Filter by skill
+        // Filter by skill - skills are now in portfolios, not directly in mahasiswa
         if ($request->has('skill') && $request->skill) {
-            $query->whereHas('skills', function($q) use ($request) {
-                $q->where('nama', 'like', "%{$request->skill}%");
+            $query->whereHas('portofolios', function($q) use ($request) {
+                $q->where('is_public', true)
+                  ->whereHas('skills', function($skillQuery) use ($request) {
+                      $skillQuery->where('nama', 'like', "%{$request->skill}%");
+                  });
             });
         }
 
@@ -98,9 +100,11 @@ class CompanyController extends Controller
 
     public function getStudentPortfolio($id, Request $request)
     {
-        $mahasiswa = Mahasiswa::with(['user', 'portofolio', 'projects', 'skills', 'certificates', 'experiences'])
+        $mahasiswa = Mahasiswa::with(['user', 'portofolios' => function($q) {
+            $q->where('is_public', true);
+        }, 'projects', 'skills', 'certificates', 'experiences'])
             ->where('id', $id)
-            ->whereHas('portofolio', function($q) {
+            ->whereHas('portofolios', function($q) {
                 $q->where('is_public', true);
             })
             ->first();
