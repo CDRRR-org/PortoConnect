@@ -147,11 +147,7 @@ const handleCallbackCheck = async (path) => {
       const urlParams = new URLSearchParams(window.location.search)
       const token = urlParams.get('token')
       
-      console.log('Callback received, token:', token ? 'Found' : 'Not found')
-      
       if (!token) {
-        console.error('Token tidak ditemukan di URL')
-        alert('Token tidak ditemukan. Silakan login ulang.')
         router.push('/login?error=no_token')
         return
       }
@@ -160,47 +156,31 @@ const handleCallbackCheck = async (path) => {
       localStorage.setItem('token', token)
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
       
-      console.log('Token stored, fetching user data...')
-      
-      // Get user data with explicit headers
+      // Get user data
       const response = await axios.get('/api/me', {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          'Accept': 'application/json'
         }
       })
       
-      console.log('User data received:', response.data)
-      
-      if (!response.data || !response.data.user) {
-        throw new Error('User data tidak ditemukan dalam response')
+      if (!response.data?.user) {
+        throw new Error('User data tidak ditemukan')
       }
       
       const user = response.data.user
-      console.log('User role:', user.role)
 
       // Redirect based on role
       if (user.role === 'admin') {
-        console.log('Redirecting to admin dashboard')
         router.push('/dashboard/admin')
       } else if (user.role === 'mahasiswa') {
-        console.log('Redirecting to mahasiswa profile')
         router.push('/profile/mahasiswa')
       } else if (user.role === 'perusahaan') {
-        console.log('Redirecting to perusahaan dashboard')
         router.push('/dashboard/perusahaan')
       } else {
-        // No role, go to role selection
-        console.log('No role, redirecting to role selection')
         router.push('/pilih-role')
       }
     } catch (error) {
-      console.error('Gagal mengambil data user:', error)
-      console.error('Error response:', error.response)
-      console.error('Error status:', error.response?.status)
-      console.error('Error data:', error.response?.data)
-      
       // Clear invalid token
       localStorage.removeItem('token')
       delete axios.defaults.headers.common['Authorization']

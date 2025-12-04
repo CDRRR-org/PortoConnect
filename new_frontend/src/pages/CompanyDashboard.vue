@@ -213,7 +213,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
             <h4 class="text-white font-bold mb-4">Informasi Kontak</h4>
-            <p class="text-white/80">Email : contact@portoconnect.com</p>
+            <p class="text-white/80">Email : unika@unika.ac.id</p>
             <p class="text-white/80">WhatsApp Official : 08123-2345-479</p>
           </div>
           <div class="flex items-center gap-4">
@@ -255,16 +255,42 @@ const searchForm = ref({
 
 onMounted(async () => {
   const token = localStorage.getItem('token')
-  if (token) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    try {
-      const res = await axios.get('/api/me')
-      currentUser.value = res.data.user
-    } catch (error) {
-      console.error('Error loading user:', error)
+  if (!token) {
+    router.push('/login')
+    return
+  }
+  
+  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+  
+  // Validasi role - pastikan user adalah perusahaan
+  try {
+    const res = await axios.get('/api/me')
+    const user = res.data?.user
+    
+    if (!user || user.role !== 'perusahaan') {
+      // Redirect berdasarkan role
+      if (user?.role === 'admin') {
+        router.push('/dashboard/admin')
+      } else if (user?.role === 'mahasiswa') {
+        router.push('/profile/mahasiswa')
+      } else {
+        router.push('/dashboard')
+      }
+      return
+    }
+    
+    // Jika user adalah perusahaan, lanjutkan load data
+    currentUser.value = user
+    await loadPortfoliosPortfolio()
+  } catch (error) {
+    console.error('Error validating company access:', error)
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      localStorage.removeItem('token')
+      router.push('/login')
+    } else {
+      alert('Gagal memuat data. Silakan refresh halaman.')
     }
   }
-  await loadPortfoliosPortfolio()
 })
 
 // Portofolio Tab Functions

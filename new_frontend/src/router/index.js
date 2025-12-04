@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import axios from 'axios'
 import Home from '@/pages/Home.vue'
 import Login from '@/pages/login.vue'
 import Register from '@/pages/register.vue'
@@ -93,6 +94,119 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+})
+
+// Navigation guard untuk proteksi route berdasarkan role
+router.beforeEach(async (to, from, next) => {
+  const token = localStorage.getItem('token')
+  
+  // Jika route memerlukan auth tapi tidak ada token
+  const publicRoutes = ['/', '/login', '/register', '/explore', '/portfolio/:publicLink', '/auth/callback']
+  const isPublicRoute = publicRoutes.some(route => {
+    if (route.includes(':')) {
+      const routePattern = route.replace(/:[^/]+/g, '[^/]+')
+      const regex = new RegExp('^' + routePattern.replace(/\//g, '\\/') + '$')
+      return regex.test(to.path)
+    }
+    return to.path === route
+  })
+  
+  if (!token && !isPublicRoute && to.path !== '/login' && to.path !== '/register') {
+    next('/login')
+    return
+  }
+  
+  // Proteksi route admin
+  if (to.path === '/dashboard/admin') {
+    if (!token) {
+      next('/login')
+      return
+    }
+    
+    try {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      const response = await axios.get('/api/me')
+      
+      if (response.data?.user?.role !== 'admin') {
+        // Redirect berdasarkan role
+        if (response.data?.user?.role === 'mahasiswa') {
+          next('/profile/mahasiswa')
+        } else if (response.data?.user?.role === 'perusahaan') {
+          next('/dashboard/perusahaan')
+        } else {
+          next('/dashboard')
+        }
+        return
+      }
+    } catch (error) {
+      console.error('Error checking user role:', error)
+      localStorage.removeItem('token')
+      next('/login')
+      return
+    }
+  }
+  
+  // Proteksi route perusahaan
+  if (to.path === '/dashboard/perusahaan') {
+    if (!token) {
+      next('/login')
+      return
+    }
+    
+    try {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      const response = await axios.get('/api/me')
+      
+      if (response.data?.user?.role !== 'perusahaan') {
+        // Redirect berdasarkan role
+        if (response.data?.user?.role === 'admin') {
+          next('/dashboard/admin')
+        } else if (response.data?.user?.role === 'mahasiswa') {
+          next('/profile/mahasiswa')
+        } else {
+          next('/dashboard')
+        }
+        return
+      }
+    } catch (error) {
+      console.error('Error checking user role:', error)
+      localStorage.removeItem('token')
+      next('/login')
+      return
+    }
+  }
+  
+  // Proteksi route mahasiswa (profile)
+  if (to.path === '/profile/mahasiswa' || to.path === '/portfolio/list') {
+    if (!token) {
+      next('/login')
+      return
+    }
+    
+    try {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      const response = await axios.get('/api/me')
+      
+      if (response.data?.user?.role !== 'mahasiswa') {
+        // Redirect berdasarkan role
+        if (response.data?.user?.role === 'admin') {
+          next('/dashboard/admin')
+        } else if (response.data?.user?.role === 'perusahaan') {
+          next('/dashboard/perusahaan')
+        } else {
+          next('/dashboard')
+        }
+        return
+      }
+    } catch (error) {
+      console.error('Error checking user role:', error)
+      localStorage.removeItem('token')
+      next('/login')
+      return
+    }
+  }
+  
+  next()
 })
 
 export default router

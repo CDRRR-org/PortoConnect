@@ -192,7 +192,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
             <h4 class="text-white font-bold mb-4">Informasi Kontak</h4>
-            <p class="text-white/80">Email : contact@portoconnect.com</p>
+            <p class="text-white/80">Email : unika@unika.ac.id</p>
             <p class="text-white/80">WhatsApp Official : 08123-2345-479</p>
           </div>
           <div class="flex items-center gap-4">
@@ -238,15 +238,38 @@ const loadPortfolios = async (bidang = null) => {
   try {
     const params = bidang ? { bidang } : {}
     const response = await axios.get('/api/portfolios/public', { params })
-    portfolios.value = response.data.portfolios || []
+    
+    // Ensure we have the data structure
+    if (response.data && Array.isArray(response.data.portfolios)) {
+      portfolios.value = response.data.portfolios
+    } else if (Array.isArray(response.data)) {
+      portfolios.value = response.data
+    } else {
+      portfolios.value = []
+    }
     
     // Load all portfolios for counting if not already loaded
     if (allPortfolios.value.length === 0) {
       const allResponse = await axios.get('/api/portfolios/public')
-      allPortfolios.value = allResponse.data.portfolios || []
+      if (allResponse.data && Array.isArray(allResponse.data.portfolios)) {
+        allPortfolios.value = allResponse.data.portfolios
+      } else if (Array.isArray(allResponse.data)) {
+        allPortfolios.value = allResponse.data
+      } else {
+        allPortfolios.value = []
+      }
     }
   } catch (error) {
     console.error('Error loading portfolios:', error)
+    console.error('Error response:', error.response?.data)
+    portfolios.value = []
+    allPortfolios.value = []
+    
+    // Show user-friendly error message
+    const errorMessage = error.response?.data?.message || error.message || 'Gagal memuat portofolio'
+    if (!errorMessage.includes('Unclosed')) {
+      alert('Gagal memuat portofolio: ' + errorMessage)
+    }
   }
 }
 

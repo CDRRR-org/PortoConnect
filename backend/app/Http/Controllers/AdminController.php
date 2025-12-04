@@ -25,7 +25,12 @@ class AdminController extends Controller
         $role = $request->query('role');
         $search = $request->query('search');
         
-        $query = User::with(['mahasiswa', 'perusahaan', 'admin']);
+        $query = User::with([
+            'mahasiswa:id,user_id',
+            'perusahaan:id,user_id',
+            'admin:id,user_id'
+        ])
+        ->select('id', 'name', 'email', 'role', 'email_verified_at', 'created_at');
         
         if ($role) {
             $query->where('role', $role);
@@ -238,18 +243,22 @@ class AdminController extends Controller
 
     public function getDashboardStats(Request $request)
     {
-        $stats = [
-            'total_users' => User::count(),
-            'total_mahasiswa' => User::where('role', 'mahasiswa')->count(),
-            'total_perusahaan' => User::where('role', 'perusahaan')->count(),
-            'total_admin' => User::where('role', 'admin')->count(),
-            'verified_mahasiswa' => Mahasiswa::where('is_verified', true)->count(),
-            'verified_perusahaan' => Perusahaan::where('is_verified', true)->count(),
-            'recent_activities' => ActivityLog::with(['admin.user', 'user'])
-                ->orderBy('created_at', 'desc')
-                ->limit(10)
-                ->get(),
-        ];
+        // Cache stats for 5 minutes
+        $stats = \Cache::remember('admin_dashboard_stats', 300, function () {
+            return [
+                'total_users' => User::count(),
+                'total_mahasiswa' => User::where('role', 'mahasiswa')->count(),
+                'total_perusahaan' => User::where('role', 'perusahaan')->count(),
+                'total_admin' => User::where('role', 'admin')->count(),
+                'verified_mahasiswa' => Mahasiswa::where('is_verified', true)->count(),
+                'verified_perusahaan' => Perusahaan::where('is_verified', true)->count(),
+                'recent_activities' => ActivityLog::with(['admin:id,user_id', 'admin.user:id,name', 'user:id,name'])
+                    ->select('id', 'admin_id', 'user_id', 'action', 'model_type', 'description', 'created_at')
+                    ->orderBy('created_at', 'desc')
+                    ->limit(10)
+                    ->get(),
+            ];
+        });
         
         return response()->json($stats);
     }
@@ -260,9 +269,11 @@ class AdminController extends Controller
     public function getPortfolios(Request $request)
     {
         $query = Portofolio::with([
-            'mahasiswa.user',
-            'skills'
-        ]);
+            'mahasiswa:id,user_id,universitas,jurusan',
+            'mahasiswa.user:id,name',
+            'skills:id,portofolio_id,nama,level'
+        ])
+        ->select('id', 'mahasiswa_id', 'nama', 'bidang', 'deskripsi', 'public_link', 'is_public', 'created_at');
 
         // Filter by bidang if provided
         if ($request->has('bidang') && $request->bidang) {
@@ -299,7 +310,14 @@ class AdminController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
+        $bidang = $portfolio->bidang;
         $portfolio->delete();
+
+        // Clear cache when portfolio is deleted
+        \Cache::forget('public_portfolios_all');
+        if ($bidang) {
+            \Cache::forget('public_portfolios_' . $bidang);
+        }
 
         return response()->json(['message' => 'Portofolio berhasil dihapus']);
     }

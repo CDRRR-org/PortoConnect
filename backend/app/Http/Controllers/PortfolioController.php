@@ -7,6 +7,7 @@ use App\Models\Portofolio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class PortfolioController extends Controller
@@ -16,26 +17,47 @@ class PortfolioController extends Controller
      */
     public function index(Request $request)
     {
-        $user = $request->user();
-        
-        if ($user->role !== 'mahasiswa') {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        try {
+            $user = $request->user();
+            
+            if ($user->role !== 'mahasiswa') {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+
+            $mahasiswa = $user->mahasiswa;
+            
+            if (!$mahasiswa) {
+                return response()->json(['message' => 'Profil mahasiswa tidak ditemukan'], 404);
+            }
+
+            $portofolios = $mahasiswa->portofolios()
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($portfolio) {
+                    return [
+                        'id' => $portfolio->id,
+                        'mahasiswa_id' => $portfolio->mahasiswa_id,
+                        'nama' => $portfolio->nama,
+                        'bidang' => $portfolio->bidang,
+                        'deskripsi' => $portfolio->deskripsi,
+                        'public_link' => $portfolio->public_link,
+                        'is_public' => $portfolio->is_public,
+                        'created_at' => $portfolio->created_at ? $portfolio->created_at->toISOString() : null,
+                        'updated_at' => $portfolio->updated_at ? $portfolio->updated_at->toISOString() : null,
+                    ];
+                });
+
+            return response()->json([
+                'portofolios' => $portofolios,
+                'total' => $portofolios->count()
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in index portfolios: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Gagal memuat portofolio',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
-
-        $mahasiswa = $user->mahasiswa;
-        
-        if (!$mahasiswa) {
-            return response()->json(['message' => 'Profil mahasiswa tidak ditemukan'], 404);
-        }
-
-        $portofolios = $mahasiswa->portofolios()
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return response()->json([
-            'portofolios' => $portofolios,
-            'total' => $portofolios->count()
-        ]);
     }
 
     /**
@@ -165,7 +187,17 @@ class PortfolioController extends Controller
             ], 422);
         }
 
+        $oldBidang = $portofolio->bidang;
         $portofolio->update($request->only(['nama', 'bidang', 'education', 'language', 'deskripsi', 'is_public', 'custom_css']));
+
+        // Clear cache when portfolio is updated
+        Cache::forget('public_portfolios_all');
+        if ($oldBidang) {
+            Cache::forget('public_portfolios_' . $oldBidang);
+        }
+        if ($portofolio->bidang && $portofolio->bidang !== $oldBidang) {
+            Cache::forget('public_portfolios_' . $portofolio->bidang);
+        }
 
         return response()->json([
             'message' => 'Portofolio berhasil diperbarui',
@@ -196,7 +228,14 @@ class PortfolioController extends Controller
             return response()->json(['message' => 'Portofolio tidak ditemukan'], 404);
         }
 
+        $bidang = $portofolio->bidang;
         $portofolio->delete();
+
+        // Clear cache when portfolio is deleted
+        Cache::forget('public_portfolios_all');
+        if ($bidang) {
+            Cache::forget('public_portfolios_' . $bidang);
+        }
 
         return response()->json([
             'message' => 'Portofolio berhasil dihapus'
@@ -268,6 +307,12 @@ class PortfolioController extends Controller
             'is_public' => true,
         ]);
 
+        // Clear cache when portfolio becomes public
+        Cache::forget('public_portfolios_all');
+        if ($portofolio->bidang) {
+            Cache::forget('public_portfolios_' . $portofolio->bidang);
+        }
+
         return response()->json([
             'message' => 'Link publik berhasil dibuat',
             'public_link' => $portofolio->public_link,
@@ -277,21 +322,65 @@ class PortfolioController extends Controller
 
     public function getPublicPortfolios(Request $request)
     {
-        $query = Portofolio::where('is_public', true)
-            ->whereNotNull('public_link')
-            ->with([
-                'mahasiswa.user',
-                'skills' // Load all skills, not limited, for proper filtering
-            ]);
+        try {
+            $bidang = $request->query('bidang');
+            $cacheKey = $bidang ? 'public_portfolios_' . Str::slug($bidang) : 'public_portfolios_all';
+            
+            $portfolios = Cache::remember($cacheKey, 300, function () use ($bidang) {
+                $query = Portofolio::where('is_public', true)
+                    ->whereNotNull('public_link')
+                    ->with([
+                        'mahasiswa:id,user_id,universitas,jurusan',
+                        'mahasiswa.user:id,name',
+                        'skills:id,portofolio_id,nama,level'
+                    ])
+                    ->select('id', 'mahasiswa_id', 'nama', 'bidang', 'deskripsi', 'public_link', 'is_public', 'created_at');
 
-        // Filter by bidang if provided
-        if ($request->has('bidang') && $request->bidang) {
-            $query->where('bidang', $request->bidang);
+                // Filter by bidang if provided
+                if ($bidang) {
+                    $query->where('bidang', $bidang);
+                }
+
+                return $query->orderBy('created_at', 'desc')->get()->map(function ($portfolio) {
+                    return [
+                        'id' => $portfolio->id,
+                        'mahasiswa_id' => $portfolio->mahasiswa_id,
+                        'nama' => $portfolio->nama,
+                        'bidang' => $portfolio->bidang,
+                        'deskripsi' => $portfolio->deskripsi,
+                        'public_link' => $portfolio->public_link,
+                        'is_public' => $portfolio->is_public,
+                        'created_at' => $portfolio->created_at ? $portfolio->created_at->toISOString() : null,
+                        'mahasiswa' => $portfolio->mahasiswa ? [
+                            'id' => $portfolio->mahasiswa->id,
+                            'user_id' => $portfolio->mahasiswa->user_id,
+                            'universitas' => $portfolio->mahasiswa->universitas,
+                            'jurusan' => $portfolio->mahasiswa->jurusan,
+                            'user' => $portfolio->mahasiswa->user ? [
+                                'id' => $portfolio->mahasiswa->user->id,
+                                'name' => $portfolio->mahasiswa->user->name,
+                            ] : null,
+                        ] : null,
+                        'skills' => $portfolio->skills ? $portfolio->skills->map(function ($skill) {
+                            return [
+                                'id' => $skill->id,
+                                'portofolio_id' => $skill->portofolio_id,
+                                'nama' => $skill->nama,
+                                'level' => $skill->level,
+                            ];
+                        }) : [],
+                    ];
+                });
+            });
+
+            return response()->json(['portfolios' => $portfolios]);
+        } catch (\Exception $e) {
+            Log::error('Error in getPublicPortfolios: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Gagal memuat portofolio',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
-
-        $portfolios = $query->orderBy('created_at', 'desc')->get();
-
-        return response()->json(['portfolios' => $portfolios]);
     }
 
     /**

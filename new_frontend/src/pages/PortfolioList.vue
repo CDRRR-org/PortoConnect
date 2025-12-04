@@ -342,12 +342,29 @@ onMounted(async () => {
 const loadData = async () => {
   try {
     const token = localStorage.getItem('token')
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    if (!token) {
+      router.push('/login')
+      return
     }
+    
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
 
-    // Load user
+    // Validasi role - pastikan user adalah mahasiswa
     const userRes = await axios.get('/api/me')
+    const userRole = userRes.data?.user?.role
+    
+    if (userRole !== 'mahasiswa') {
+      // Redirect berdasarkan role
+      if (userRole === 'admin') {
+        router.push('/dashboard/admin')
+      } else if (userRole === 'perusahaan') {
+        router.push('/dashboard/perusahaan')
+      } else {
+        router.push('/dashboard')
+      }
+      return
+    }
+    
     user.value = userRes.data.user
 
     // Load profile
@@ -373,8 +390,11 @@ const loadData = async () => {
     await loadPortfolios()
   } catch (error) {
     console.error('Error loading data:', error)
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      localStorage.removeItem('token')
       router.push('/login')
+    } else {
+      alert('Gagal memuat data. Silakan refresh halaman.')
     }
   }
 }

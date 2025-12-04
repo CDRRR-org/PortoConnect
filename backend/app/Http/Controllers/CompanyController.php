@@ -33,9 +33,14 @@ class CompanyController extends Controller
             return response()->json(['message' => 'Profil perusahaan tidak ditemukan'], 404);
         }
 
-        $query = Mahasiswa::with(['user', 'portofolios' => function($q) {
-                $q->where('is_public', true);
-            }])
+        $query = Mahasiswa::with([
+                'user:id,name,email',
+                'portofolios' => function($q) {
+                    $q->where('is_public', true)
+                      ->select('id', 'mahasiswa_id', 'nama', 'bidang', 'deskripsi', 'public_link', 'is_public');
+                }
+            ])
+            ->select('id', 'user_id', 'nim', 'jurusan', 'fakultas', 'universitas', 'deskripsi_diri')
             ->whereHas('portofolios', function($q) {
                 $q->where('is_public', true);
             });

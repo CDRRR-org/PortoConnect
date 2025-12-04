@@ -73,7 +73,7 @@
     </header>
 
     <main
-      class="pt-32 pb-20 min-h-screen flex items-center"
+      class="pt-32 pb-32 min-h-screen flex items-center relative main-section-curved"
     >
       <div
         class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 items-center gap-16 px-6"
@@ -93,6 +93,7 @@
             Steve Jobs (Co-founder Apple)
           </p>
           <button
+            @click="scrollToTeams"
             class="bg-white text-black font-semibold py-2 px-8 rounded-full shadow-lg hover:bg-gray-200 transition"
           >
             About
@@ -110,7 +111,7 @@
     </main>
 
     <!-- Portfolio Preview Section -->
-    <section class="py-24 bg-white text-black relative overflow-hidden">
+    <section class="py-24 bg-white text-black relative overflow-hidden" style="margin-top: -80px; padding-top: 104px;">
       <div class="max-w-4xl mx-auto px-6">
         <h2 class="text-3xl font-poppins text-purple-800 mb-12 text-center">
           Jelajahi Portofolio Mahasiswa
@@ -177,7 +178,7 @@
       </div>
     </section>
 
-    <section class="py-24 bg-white text-black">
+    <section id="our-teams" class="py-24 bg-white text-black">
       <div class="max-w-4xl mx-auto text-center px-6">
         <h2 class="text-3xl font-poppins text-purple-800 mb-8">
           "If you want to go fast, go alone. If you want to go far, go
@@ -313,6 +314,13 @@ const viewPortfolio = (portfolio) => {
   }
 }
 
+const scrollToTeams = () => {
+  const teamsSection = document.getElementById('our-teams')
+  if (teamsSection) {
+    teamsSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
+
 const handleLogout = async () => {
   try {
     await axios.post('/api/logout')
@@ -390,5 +398,15 @@ const handleLogout = async () => {
       #f3e8ff 98%, 
       #ffffff 100%
     );
+}
+
+.main-section-curved {
+  border-bottom-left-radius: 150px;
+  border-bottom-right-radius: 150px;
+  overflow: hidden;
+  margin-bottom: -80px;
+  padding-bottom: 100px;
+  position: relative;
+  z-index: 1;
 }
 </style>

@@ -101,7 +101,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
             <h4 class="text-white font-bold mb-4">Informasi Kontak</h4>
-            <p class="text-white/80">Email : {{ user?.email || 'contact@portoconnect.com' }}</p>
+            <p class="text-white/80">Email : unika@unika.ac.id</p>
             <p class="text-white/80">WhatsApp Official : 08123-2345-479</p>
           </div>
           <div class="flex items-center gap-4">
@@ -134,8 +134,36 @@ onMounted(async () => {
 const loadData = async () => {
   try {
     const token = localStorage.getItem('token')
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    if (!token) {
+      router.push('/login')
+      return
+    }
+    
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    
+    // Validasi role - pastikan user adalah mahasiswa
+    try {
+      const meResponse = await axios.get('/api/me')
+      const userRole = meResponse.data?.user?.role
+      
+      if (userRole !== 'mahasiswa') {
+        // Redirect berdasarkan role
+        if (userRole === 'admin') {
+          router.push('/dashboard/admin')
+        } else if (userRole === 'perusahaan') {
+          router.push('/dashboard/perusahaan')
+        } else {
+          router.push('/dashboard')
+        }
+        return
+      }
+    } catch (roleError) {
+      console.error('Error validating mahasiswa access:', roleError)
+      if (roleError.response?.status === 401 || roleError.response?.status === 403) {
+        localStorage.removeItem('token')
+        router.push('/login')
+        return
+      }
     }
 
     const res = await axios.get('/api/mahasiswa/profile')
@@ -143,7 +171,8 @@ const loadData = async () => {
     mahasiswa.value = res.data.mahasiswa
   } catch (error) {
     console.error('Error loading profile:', error)
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      localStorage.removeItem('token')
       router.push('/login')
     }
   }

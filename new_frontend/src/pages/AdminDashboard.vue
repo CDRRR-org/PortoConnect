@@ -193,7 +193,7 @@
 
           <!-- Main Content -->
           <main class="flex-1">
-            <h2 class="text-3xl font-bold text-gray-800 mb-6">Manajemen Portofolio</h2>
+            <h2 class="text-3xl font-bold text-white mb-6">Manajemen Portofolio</h2>
             
             <!-- Portfolio Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -381,6 +381,98 @@
         </div>
       </div>
     </div>
+
+    <!-- Portfolio Detail Modal -->
+    <div v-if="showPortfolioModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+      <div class="bg-white rounded-lg p-6 w-full max-w-4xl my-8 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-2xl font-bold text-gray-800">Detail Portofolio</h3>
+          <button
+            @click="showPortfolioModal = false"
+            class="text-gray-500 hover:text-gray-700"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div v-if="selectedPortfolio" class="space-y-6">
+          <!-- Portfolio Header -->
+          <div class="bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 rounded-lg p-6 text-white">
+            <h2 class="text-3xl font-bold mb-2">{{ selectedPortfolio.nama || 'Portofolio' }}</h2>
+            <p v-if="selectedPortfolio.bidang" class="text-lg opacity-90">{{ selectedPortfolio.bidang }}</p>
+          </div>
+
+          <!-- Student Info -->
+          <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+            <div class="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+              {{ selectedPortfolio.mahasiswa?.user?.name?.charAt(0)?.toUpperCase() || 'U' }}
+            </div>
+            <div>
+              <h4 class="font-bold text-gray-800 text-lg">{{ selectedPortfolio.mahasiswa?.user?.name }}</h4>
+              <p class="text-gray-600">{{ selectedPortfolio.mahasiswa?.universitas || '-' }}</p>
+              <p class="text-gray-600">{{ selectedPortfolio.mahasiswa?.jurusan || '-' }}</p>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div v-if="selectedPortfolio.deskripsi">
+            <h4 class="font-bold text-gray-800 mb-2">Deskripsi</h4>
+            <p class="text-gray-700 whitespace-pre-line">{{ selectedPortfolio.deskripsi }}</p>
+          </div>
+
+          <!-- Skills -->
+          <div v-if="selectedPortfolio.skills && selectedPortfolio.skills.length > 0">
+            <h4 class="font-bold text-gray-800 mb-3">Skills</h4>
+            <div class="flex flex-wrap gap-2">
+              <span
+                v-for="skill in selectedPortfolio.skills"
+                :key="skill.id"
+                class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-semibold"
+              >
+                {{ skill.nama }} ({{ skill.level }})
+              </span>
+            </div>
+          </div>
+
+          <!-- Public Link -->
+          <div v-if="selectedPortfolio.is_public && selectedPortfolio.public_link" class="p-4 bg-gray-50 rounded-lg">
+            <h4 class="font-bold text-gray-800 mb-2">Link Publik</h4>
+            <div class="flex gap-2">
+              <input
+                :value="getPublicUrl(selectedPortfolio.public_link)"
+                readonly
+                class="flex-1 border rounded-lg px-3 py-2 bg-white text-sm"
+              />
+              <button
+                @click="copyToClipboard(getPublicUrl(selectedPortfolio.public_link))"
+                class="bg-purple-700 text-white px-4 py-2 rounded-lg hover:bg-purple-800 text-sm"
+              >
+                Salin Link
+              </button>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex gap-2 pt-4 border-t">
+            <button
+              @click="showPortfolioModal = false"
+              class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400"
+            >
+              Kembali
+            </button>
+            <button
+              v-if="selectedPortfolio.public_link"
+              @click="window.open(`/portfolio/${selectedPortfolio.public_link}`, '_blank')"
+              class="flex-1 bg-purple-700 text-white px-4 py-2 rounded-lg hover:bg-purple-800"
+            >
+              Buka di Tab Baru
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -403,6 +495,8 @@ const selectedBidang = ref(null)
 const showDeleteModal = ref(false)
 const portfolioToDelete = ref(null)
 const deleting = ref(false)
+const showPortfolioModal = ref(false)
+const selectedPortfolio = ref(null)
 
 const userForm = ref({
   id: null,
@@ -419,12 +513,43 @@ const tabs = [
 
 onMounted(async () => {
   const token = localStorage.getItem('token')
-  if (token) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+  if (!token) {
+    router.push('/login')
+    return
   }
-  await loadStats()
-  await loadUsers()
-  await loadPortfolios()
+  
+  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+  
+  // Validasi role - pastikan user adalah admin
+  try {
+    const response = await axios.get('/api/me')
+    const user = response.data?.user
+    
+    if (!user || user.role !== 'admin') {
+      // Redirect berdasarkan role
+      if (user?.role === 'mahasiswa') {
+        router.push('/profile/mahasiswa')
+      } else if (user?.role === 'perusahaan') {
+        router.push('/dashboard/perusahaan')
+      } else {
+        router.push('/dashboard')
+      }
+      return
+    }
+    
+    // Jika user adalah admin, lanjutkan load data
+    await loadStats()
+    await loadUsers()
+    await loadPortfolios()
+  } catch (error) {
+    console.error('Error validating admin access:', error)
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      localStorage.removeItem('token')
+      router.push('/login')
+    } else {
+      alert('Gagal memuat data. Silakan refresh halaman.')
+    }
+  }
 })
 
 const loadStats = async () => {
@@ -483,9 +608,8 @@ const getCountByBidang = (bidang) => {
 }
 
 const viewPortfolio = (portfolio) => {
-  if (portfolio.public_link) {
-    window.open(`/portfolio/${portfolio.public_link}`, '_blank')
-  }
+  selectedPortfolio.value = portfolio
+  showPortfolioModal.value = true
 }
 
 const confirmDelete = (portfolio) => {
@@ -569,6 +693,20 @@ const closeModal = () => {
     email: '',
     password: '',
     role: ''
+  }
+}
+
+const getPublicUrl = (publicLink) => {
+  return `${window.location.origin}/portfolio/${publicLink}`
+}
+
+const copyToClipboard = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text)
+    alert('Link berhasil disalin ke clipboard!')
+  } catch (error) {
+    console.error('Failed to copy:', error)
+    alert('Gagal menyalin link')
   }
 }
 

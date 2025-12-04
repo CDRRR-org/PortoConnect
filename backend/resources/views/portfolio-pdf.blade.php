@@ -16,18 +16,21 @@
             color: #333;
         }
         .header {
-            background: linear-gradient(135deg, #4c1d95 0%, #9333ea 100%);
-            color: white;
+            background: #ffffff;
+            color: #4c1d95;
             padding: 30px;
             text-align: center;
+            border-bottom: 3px solid #9333ea;
         }
         .header h1 {
             font-size: 28px;
             margin-bottom: 10px;
+            color: #4c1d95;
+            font-weight: bold;
         }
         .header p {
             font-size: 14px;
-            opacity: 0.9;
+            color: #666;
         }
         .container {
             padding: 30px;

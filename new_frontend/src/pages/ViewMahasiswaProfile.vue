@@ -167,7 +167,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
             <h4 class="text-white font-bold mb-4">Informasi Kontak</h4>
-            <p class="text-white/80">Email : {{ user?.email || 'contact@portoconnect.com' }}</p>
+            <p class="text-white/80">Email : unika@unika.ac.id</p>
             <p class="text-white/80">WhatsApp Official : 08123-2345-479</p>
           </div>
           <div class="flex items-center gap-4">
