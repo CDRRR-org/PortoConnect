@@ -1,19 +1,7 @@
 <template>
-  <!-- State saat memproses callback -->
-  <div
-    v-if="isProcessingCallback"
-    class="min-h-screen flex items-center justify-center bg-gray-100"
-  >
-    <div class="text-center">
-      <h1 class="text-2xl font-semibold">Memproses login Anda...</h1>
-      <p class="text-gray-600">Mohon tunggu sebentar, mengecek status...</p>
-    </div>
-  </div>
-
-  <!-- Tampilan utama -->
-  <div v-else class="login-page min-h-screen">
+  <div class="login-page min-h-screen">
     <!-- back -->
-    <button class="back-btn" @click="router.back()" aria-label="Back">
+    <button class="back-btn" @click="goBack" aria-label="Back">
       <span class="chev">‹</span> Back
     </button>
 
@@ -27,11 +15,7 @@
       <div class="auth-card" role="main" aria-labelledby="welcome">
         <h1 id="welcome">Welcome to<br /><span>Porto Connect</span></h1>
 
-        <a
-          :href="googleLoginUrl"
-          class="google-btn"
-          aria-label="Sign in with Google"
-        >
+        <button class="google-btn" @click="handleGoogleSignIn" aria-label="Sign in with Google">
           <span class="g-icon" aria-hidden="true">
             <!-- simple G svg -->
             <svg viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
@@ -42,100 +26,28 @@
             </svg>
           </span>
           <span class="btn-text">Sign Up or Login with Google</span>
-        </a>
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import axios from 'axios'
-import { useSweetAlert } from '@/composables/useSweetAlert'
+defineOptions({ name: 'LoginPage' })
 
-const { showError } = useSweetAlert()
-
-const googleLoginUrl = ref('http://localhost:8000/auth/google')
-const isProcessingCallback = ref(false)
-
-const route = useRoute()
+import { useRouter } from 'vue-router'
 const router = useRouter()
 
-const handleCallbackCheck = async (path) => {
-  if (path === '/auth/callback') {
-    isProcessingCallback.value = true
-
-    try {
-      // Get token from URL if available
-      const urlParams = new URLSearchParams(window.location.search)
-      const token = urlParams.get('token')
-      
-      if (!token) {
-        router.push('/login?error=no_token')
-        return
-      }
-      
-      // Store token
-      localStorage.setItem('token', token)
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-      
-      // Get user data
-      const response = await axios.get('/api/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
-      })
-      
-      if (!response.data?.user) {
-        throw new Error('User data tidak ditemukan')
-      }
-      
-      const user = response.data.user
-
-      // Redirect based on role
-      if (user.role === 'admin') {
-        router.push('/dashboard/admin')
-      } else if (user.role === 'mahasiswa') {
-        router.push('/profile/mahasiswa')
-      } else if (user.role === 'perusahaan') {
-        router.push('/dashboard/perusahaan')
-      } else {
-        router.push('/pilih-role')
-      }
-    } catch (error) {
-      // Clear invalid token
-      localStorage.removeItem('token')
-      delete axios.defaults.headers.common['Authorization']
-      
-      // Show error message
-      let errorMsg = 'Gagal mengambil data user'
-      if (error.response?.data?.message) {
-        errorMsg = error.response.data.message
-      } else if (error.message) {
-        errorMsg = error.message
-      }
-      
-      showError('Error: ' + errorMsg + '\nStatus: ' + (error.response?.status || 'Unknown') + '\nSilakan login ulang.')
-      
-      router.push('/login?error=fetch_user_failed')
-    }
-  } else {
-    isProcessingCallback.value = false
-  }
+function goBack() {
+  router.back()
 }
 
-onMounted(() => {
-  handleCallbackCheck(route.path)
-})
-
-watch(
-  () => route.path,
-  (newPath) => {
-    handleCallbackCheck(newPath)
-  }
-)
+function handleGoogleSignIn() {
+  // placeholder: replace with real OAuth flow
+  // e.g. window.location = '/api/auth/google' or open popup
+  console.info('Google sign-in clicked — integrate OAuth here')
+  alert('Simulasi: jalankan proses Google OAuth di sini.')
+}
 </script>
 
 <style scoped>
@@ -144,7 +56,7 @@ watch(
   position: relative;
   overflow: hidden;
   display: block;
-  background: radial-gradient(ellipse 250% 50% at -40%, #ffffff 6%, #f5eaf0 12%, #50145c 70%, #100 100%);
+  background: radial-gradient(ellipse 250% 50% at -40%, #ffffff 6%, #f5eaf0 12%, #50145C 70%, #100 100%);
   min-height: 100vh;
 }
 
@@ -223,6 +135,13 @@ watch(
 }
 .auth-card h1 span { display:block; }
 
+/* subtitle */
+.subtitle {
+  margin: 6px 0 28px 0;
+  color: rgba(0,0,0,0.6);
+  font-size: 14px;
+}
+
 /* Google button */
 .google-btn {
   display: inline-flex;
@@ -237,7 +156,6 @@ watch(
   font-weight: 600;
   box-shadow: 0 10px 30px rgba(16,16,16,0.12);
   transition: transform .18s ease, box-shadow .18s ease;
-  text-decoration: none;
 }
 .google-btn:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(16,16,16,0.18); }
 
@@ -269,6 +187,7 @@ watch(
   }
   .container { padding-left: 20px; padding-right: 20px; justify-content:center; }
   .auth-card h1 { font-size: 28px; text-align:center; }
+  .subtitle { text-align:center; }
   .google-btn { width: 100%; }
   .back-btn { left: 16px; top: 18px; padding: 8px 14px; }
 }

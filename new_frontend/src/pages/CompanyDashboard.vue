@@ -1,24 +1,57 @@
 <template>
   <div class="min-h-screen dashboard-gradient flex flex-col">
     <!-- NAVBAR -->
-    <header class="nav-wrap">
-      <div class="nav-bar">
-        <div class="nav-left">
-          <span class="brand">Porto Connect</span>
-          <img src="@/assets/logo-soegija.png" alt="soegija" class="nav-logo" />
+    <header class="fixed top-6 left-0 right-0 z-50">
+      <nav class="max-w-6xl mx-auto py-3 px-6 bg-white rounded-full flex justify-between items-center shadow-lg">
+        <div class="flex items-center gap-3">
+          <span class="text-xl font-bold font-poppins text-purple-700">Porto Connect</span>
+          <img src="@/assets/logo-soegija.png" alt="Soegijapranata Logo" class="h-8" />
         </div>
 
-        <div class="nav-center">
-          <router-link to="/" class="nav-link">Home</router-link>
+        <div class="hidden md:flex items-center gap-8 font-roboto">
+          <router-link to="/" class="text-gray-700 hover:text-purple-700 transition">Home</router-link>
+          <router-link 
+            v-if="!currentUser || currentUser.role !== 'perusahaan'"
+            to="/explore" 
+            class="text-gray-700 hover:text-purple-700 transition"
+          >
+            Portofolio
+          </router-link>
         </div>
 
-        <div class="nav-right">
-          <button class="user-name logout" @click="handleLogout">Logout</button>
+        <div class="flex items-center gap-4 font-roboto">
+          <div v-if="currentUser" class="py-1.5 px-4 rounded-full bg-black text-white hover:bg-gray-800 transition flex items-center gap-2">
+            <router-link 
+              v-if="currentUser.role === 'mahasiswa'" 
+              to="/profile/mahasiswa" 
+              class="hover:underline"
+            >
+              Dashboard Saya
+            </router-link>
+            <router-link 
+              v-else-if="currentUser.role === 'perusahaan'" 
+              to="/dashboard/perusahaan" 
+              class="hover:underline"
+            >
+              Dashboard
+            </router-link>
+            <span>|</span>
+            <button 
+              @click="handleLogout" 
+              class="hover:underline cursor-pointer"
+            >
+              Logout
+            </button>
+          </div>
+
+          <template v-else>
+            <router-link to="/login" class="py-1.5 px-4 rounded-full bg-black text-white hover:bg-gray-800 transition">Sign Up | Login</router-link>
+          </template>
         </div>
-      </div>
+      </nav>
     </header>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow pt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow pt-32">
       <div class="flex gap-6">
         <!-- Sidebar Kategori -->
         <aside class="w-64 bg-white rounded-lg shadow-sm p-4 h-fit mt-8">
@@ -129,45 +162,65 @@
             <h2 class="text-3xl font-bold text-white mb-6">Jelajahi Portofolio Mahasiswa</h2>
             
             <!-- Portfolio Grid -->
-            <div class="cards-grid">
-              <article
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div
                 v-for="portfolio in paginatedPortfolios"
                 :key="portfolio.id"
-                class="card"
+                class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow cursor-pointer transform hover:scale-105"
                 @click="viewPortfolio(portfolio)"
               >
-                <div class="card-thumb">
-                  <span class="dot"></span>
-                </div>
-                <div class="card-footer">
-                  <div class="card-avatar">
-                    <span>{{ (portfolio.mahasiswa?.user?.name || 'U').charAt(0) }}</span>
+                <!-- Header dengan gradient background -->
+                <div class="h-32 bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 relative">
+                  <div class="absolute inset-0 bg-black/20"></div>
+                  <div class="absolute bottom-4 left-4 right-4">
+                    <h3 class="text-white font-bold text-lg">{{ portfolio.nama || 'Portofolio' }}</h3>
                   </div>
-                  <div class="card-texts">
-                    <div class="card-name">{{ portfolio.mahasiswa?.user?.name || portfolio.nama }}</div>
-                    <div class="card-sub">{{ portfolio.mahasiswa?.universitas || portfolio.mahasiswa?.jurusan || '-' }}</div>
-                  </div>
-                  <div class="card-icon">●</div>
                 </div>
-                <div class="card-body">
-                  <div v-if="portfolio.bidang" class="badge">{{ portfolio.bidang }}</div>
-                  <p v-if="portfolio.deskripsi" class="desc line-clamp-2">
+
+                <!-- Content -->
+                <div class="p-4">
+                  <div class="flex items-start gap-3 mb-3">
+                    <!-- Profile Picture -->
+                    <div class="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+                      {{ portfolio.mahasiswa?.user?.name?.charAt(0)?.toUpperCase() || 'U' }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <h4 class="font-bold text-gray-800 truncate">{{ portfolio.mahasiswa?.user?.name }}</h4>
+                      <p class="text-sm text-gray-600">{{ portfolio.mahasiswa?.universitas || portfolio.mahasiswa?.jurusan || '-' }}</p>
+                    </div>
+                    <!-- Public Icon -->
+                    <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                    </svg>
+                  </div>
+
+                  <!-- Bidang Badge -->
+                  <div v-if="portfolio.bidang" class="mb-3">
+                    <span class="inline-block bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-semibold">
+                      {{ portfolio.bidang }}
+                    </span>
+                  </div>
+
+                  <!-- Deskripsi Singkat -->
+                  <p v-if="portfolio.deskripsi" class="text-sm text-gray-600 mb-3 line-clamp-2">
                     {{ portfolio.deskripsi }}
                   </p>
-                  <div v-if="portfolio.skills && portfolio.skills.length" class="skills">
+
+                  <!-- Skills -->
+                  <div v-if="portfolio.skills && portfolio.skills.length > 0" class="flex flex-wrap gap-2">
                     <span
                       v-for="skill in portfolio.skills.slice(0, 3)"
                       :key="skill.id"
+                      class="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded"
                     >
                       {{ skill.nama }}
                     </span>
-                    <span v-if="portfolio.skills.length > 3" class="more">+{{ portfolio.skills.length - 3 }}</span>
+                    <span v-if="portfolio.skills.length > 3" class="text-xs text-gray-500">
+                      +{{ portfolio.skills.length - 3 }} lainnya
+                    </span>
                   </div>
-                  <button class="btn primary full" @click.stop="viewPortfolio(portfolio)">
-                    Lihat Portofolio
-                  </button>
                 </div>
-              </article>
+              </div>
             </div>
 
             <div v-if="filteredPortfoliosPortfolio.length === 0" class="text-center text-gray-500 py-12">
@@ -201,21 +254,17 @@
     </div>
 
     <!-- FOOTER -->
-    <footer class="bg-[#50145c] text-white py-16 font-roboto mt-auto">
+    <footer class="bg-purple-900 text-white py-16 font-roboto mt-auto">
       <div class="max-w-6xl mx-auto px-6">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-8">
-          <!-- Informasi Kontak di kiri -->
-          <div>
-            <h3 class="text-2xl md:text-3xl font-bold font-poppins mb-4">Informasi Kontak</h3>
-            <ul class="space-y-2 text-gray-300">
-              <li>Email : <a href="mailto:unika@unika.ac.id" class="hover:text-purple-300 transition">unika@unika.ac.id</a></li>
-              <li>Hotline : (024) 850 5003</li>
-              <li>WhatsApp Official : <a href="https://wa.me/6281232345479" class="hover:text-purple-300 transition">08123 2345 479</a></li>
-            </ul>
-          </div>
+        <div class="mb-12">
+          <h3 class="text-2xl md:text-3xl font-bold font-poppins mb-4">Informasi Kontak</h3>
+          <ul class="space-y-2 text-gray-300">
+            <li>Email : <a href="mailto:unika@unika.ac.id" class="hover:text-purple-300 transition">unika@unika.ac.id</a></li>
+            <li>Hotline : (024) 850 5003</li>
+            <li>WhatsApp Official : <a href="https://wa.me/6281232345479" class="hover:text-purple-300 transition">08123 2345 479</a></li>
+          </ul>
         </div>
 
-        <!-- Logo bar di tengah bawah -->
         <div class="flex items-center justify-center gap-4 mb-8">
           <div class="flex flex-col text-3xl font-poppins text-white">
             <span>Porto</span>
@@ -226,12 +275,9 @@
             <img src="@/assets/logo-soegija-putih.png" alt="Logo SCU" class="h-16" />
           </div>
         </div>
-
-        <!-- Copyright di bawah -->
-        <div class="border-t border-purple-800 pt-8 text-center text-gray-500 text-sm">
-          © 2025 PortoConnect. All rights reserved.
-        </div>
       </div>
+
+      <div class="border-t border-purple-800 mt-12 pt-8 text-center text-gray-500 text-sm">&copy; 2025 PortoConnect. All rights reserved.</div>
     </footer>
   </div>
 </template>
@@ -241,8 +287,6 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { useSweetAlert } from '@/composables/useSweetAlert'
-import { logger } from '@/utils/logger'
-const fallbackImage = new URL('@/assets/card-sample.jpg', import.meta.url).href
 
 const { showSuccess, showError, showWarning } = useSweetAlert()
 
@@ -296,7 +340,7 @@ onMounted(async () => {
     currentUser.value = user
     await loadPortfoliosPortfolio()
   } catch (error) {
-    logger.error('Error validating company access:', error)
+    console.error('Error validating company access:', error)
     if (error.response?.status === 401 || error.response?.status === 403) {
       localStorage.removeItem('token')
       router.push('/login')
@@ -307,21 +351,21 @@ onMounted(async () => {
 })
 
 // Portofolio Tab Functions
-const ensureAllPortfolios = async () => {
-  if (allPortfoliosPortfolio.value.length) return
-  const allResponse = await axios.get('/api/portfolios/public')
-  allPortfoliosPortfolio.value = allResponse.data.portfolios || []
-}
-
 const loadPortfoliosPortfolio = async (bidang = null) => {
   try {
-    await ensureAllPortfolios()
-    portfoliosPortfolio.value = bidang
-      ? allPortfoliosPortfolio.value.filter(p => p.bidang === bidang)
-      : allPortfoliosPortfolio.value
+    const params = bidang ? { bidang } : {}
+    const response = await axios.get('/api/portfolios/public', { params })
+    portfoliosPortfolio.value = response.data.portfolios || []
+    
+    // Reset to first page when loading new data
     currentPage.value = 1
+    
+    if (allPortfoliosPortfolio.value.length === 0) {
+      const allResponse = await axios.get('/api/portfolios/public')
+      allPortfoliosPortfolio.value = allResponse.data.portfolios || []
+    }
   } catch (error) {
-    logger.error('Error loading portfolios:', error)
+    console.error('Error loading portfolios:', error)
   }
 }
 
@@ -332,12 +376,11 @@ const filterByBidangPortfolio = async (bidang) => {
   // If there are search results, filter them by bidang
   if (searchResults.value.length > 0) {
     const studentIds = searchResults.value.map(s => s.id)
-    await ensureAllPortfolios()
-    const source = bidang
-      ? allPortfoliosPortfolio.value.filter(p => p.bidang === bidang)
-      : allPortfoliosPortfolio.value
+    const params = bidang ? { bidang } : {}
+    const allPortfoliosRes = await axios.get('/api/portfolios/public', { params })
+    const allPortfoliosList = allPortfoliosRes.data.portfolios || []
     
-    portfoliosPortfolio.value = source.filter(p => 
+    portfoliosPortfolio.value = allPortfoliosList.filter(p => 
       studentIds.includes(p.mahasiswa_id)
     )
   } else {
@@ -387,30 +430,30 @@ const searchStudents = async () => {
       return
     }
 
-    logger.debug('Searching with params:', searchForm.value)
+    console.log('Searching with params:', searchForm.value) // Debug log
 
     const res = await axios.get('/api/company/search', { params: searchForm.value })
     
-    logger.debug('Search API response:', res.data)
+    console.log('Search API response:', res.data) // Debug log
     
     // Handle pagination response - Laravel pagination returns data in 'data' key
     const students = res.data.data || []
     searchResults.value = students
     
-    logger.debug('Found students:', students.length)
+    console.log('Found students:', students.length) // Debug log
     
     // Get all portfolios from searched students
     if (students.length > 0) {
       const studentIds = students.map(s => s.id)
-      logger.debug('Student IDs:', studentIds)
+      console.log('Student IDs:', studentIds) // Debug log
       
       // Load portfolios for these students with bidang filter
       const params = selectedBidangPortfolio.value ? { bidang: selectedBidangPortfolio.value } : {}
       const allPortfoliosRes = await axios.get('/api/portfolios/public', { params })
       const allPortfoliosList = allPortfoliosRes.data.portfolios || []
       
-      logger.debug('All portfolios:', allPortfoliosList.length)
-      logger.debug('Portfolio mahasiswa_ids:', allPortfoliosList.map(p => p.mahasiswa_id))
+      console.log('All portfolios:', allPortfoliosList.length) // Debug log
+      console.log('Portfolio mahasiswa_ids:', allPortfoliosList.map(p => p.mahasiswa_id)) // Debug log
       
       // Filter portfolios to show only from searched students
       let filteredPortfolios = allPortfoliosList.filter(p => 
@@ -433,7 +476,7 @@ const searchStudents = async () => {
                  mahasiswaName.includes(searchKeyword) ||
                  mahasiswaNim.includes(searchKeyword)
         })
-        logger.debug('After keyword filter:', filteredPortfolios.length)
+        console.log('After keyword filter:', filteredPortfolios.length) // Debug log
       }
       
       // Additional filter: if skill is searched, filter portfolios by skill
@@ -448,7 +491,7 @@ const searchStudents = async () => {
           }
           return false
         })
-        logger.debug('After skill filter:', filteredPortfolios.length)
+        console.log('After skill filter:', filteredPortfolios.length) // Debug log
       }
       
       // Additional filter: if jurusan is searched, filter portfolios by jurusan
@@ -458,7 +501,7 @@ const searchStudents = async () => {
           const portfolioJurusan = (portfolio.mahasiswa?.jurusan || '').toLowerCase()
           return portfolioJurusan.includes(searchJurusan)
         })
-        logger.debug('After jurusan filter:', filteredPortfolios.length)
+        console.log('After jurusan filter:', filteredPortfolios.length) // Debug log
       }
       
       // Additional filter: if fakultas is searched, filter portfolios by fakultas
@@ -468,7 +511,7 @@ const searchStudents = async () => {
           const portfolioFakultas = (portfolio.mahasiswa?.fakultas || '').toLowerCase()
           return portfolioFakultas.includes(searchFakultas)
         })
-        logger.debug('After fakultas filter:', filteredPortfolios.length)
+        console.log('After fakultas filter:', filteredPortfolios.length) // Debug log
       }
       
       // Additional filter: if universitas is searched, filter portfolios by universitas
@@ -478,15 +521,18 @@ const searchStudents = async () => {
           const portfolioUniversitas = (portfolio.mahasiswa?.universitas || '').toLowerCase()
           return portfolioUniversitas.includes(searchUniversitas)
         })
-        logger.debug('After universitas filter:', filteredPortfolios.length)
+        console.log('After universitas filter:', filteredPortfolios.length) // Debug log
       }
       
       portfoliosPortfolio.value = filteredPortfolios
       
-      logger.debug('Filtered portfolios:', portfoliosPortfolio.value.length)
+      console.log('Filtered portfolios:', portfoliosPortfolio.value.length) // Debug log
       
       if (portfoliosPortfolio.value.length === 0) {
         showWarning(`Ditemukan ${students.length} mahasiswa, tapi tidak ada portofolio yang sesuai dengan kriteria pencarian`)
+      } else {
+        // Success - portfolios are already updated
+        console.log('Search successful, showing portfolios')
       }
     } else {
       // If no search results, reload with current bidang filter
@@ -494,8 +540,8 @@ const searchStudents = async () => {
       showWarning('Tidak ada mahasiswa yang ditemukan dengan kriteria pencarian tersebut')
     }
   } catch (error) {
-    logger.error('Error searching students:', error)
-    logger.debug('Error response:', error.response)
+    console.error('Error searching students:', error)
+    console.error('Error response:', error.response) // Debug log
     
     const errorMessage = error.response?.data?.message || 
                         error.response?.data?.errors || 
@@ -550,131 +596,5 @@ const handleLogout = async () => {
     #50145C 60%,
     #ffffff 80%
   );
-}
-
-/* NAVBAR */
-.nav-wrap { padding: 28px 0 0 0; }
-.nav-bar {
-  width: min(1200px, 94%);
-  margin: 0 auto;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  background: rgba(255,255,255,0.95);
-  border-radius: 26px;
-  padding: 12px 28px;
-  box-shadow: 0 8px 30px rgba(6,6,10,0.12);
-  height: 64px;
-}
-.nav-left, .nav-center, .nav-right { display:flex; align-items:center; gap:14px; }
-.brand { font-weight:700; color:#5e1f62; }
-.nav-logo { height:26px; }
-.nav-center { gap:28px; margin-left: 14px;}
-.nav-link { color:#222; opacity:0.9; }
-.nav-link.active { font-weight:700; }
-.user-name { color:#222; font-weight:600; }
-.logout { border:none; background:transparent; cursor:pointer; }
-
-/* Cards */
-.cards-grid {
-  display:grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 22px;
-  padding: 18px;
-  background: #50145c;
-  border-radius: 20px;
-  box-shadow: 0 30px 80px rgba(6,6,10,0.12);
-}
-.card {
-  background: #fff;
-  border-radius: 18px;
-  overflow: hidden;
-  box-shadow: 0 16px 40px rgba(6,6,10,0.08);
-  display:flex;
-  flex-direction:column;
-  min-height: 260px;
-  position: relative;
-  cursor: pointer;
-  transition: transform 0.16s ease, box-shadow 0.16s ease;
-}
-.card:hover { transform: translateY(-4px); box-shadow: 0 24px 48px rgba(6,6,10,0.14); }
-.card-thumb {
-  height: 32px;
-  background: transparent;
-  display:flex;
-  justify-content:flex-end;
-  align-items:flex-start;
-  padding: 8px;
-}
-.dot {
-  width: 8px;
-  height: 8px;
-  background: #d9d9d9;
-  border-radius: 999px;
-}
-.card-footer {
-  display:flex;
-  align-items:center;
-  gap:12px;
-  padding: 12px 16px 0 16px;
-}
-.card-avatar {
-  width:44px; height:44px; border-radius:999px; background:#5e1f62; color:#fff;
-  display:flex; align-items:center; justify-content:center; font-weight:700; border:3px solid #fff;
-}
-.card-texts .card-name { font-weight:700; color:#111; }
-.card-sub { font-size:13px; color:#777; margin-top:4px; }
-.card-icon { margin-left:auto; color:#bbb; }
-
-.card-body { padding: 10px 16px 16px 16px; display:flex; flex-direction:column; gap:8px; }
-.badge {
-  display:inline-block;
-  background:#f3e8ff;
-  color:#5e1f62;
-  padding:6px 10px;
-  border-radius:999px;
-  font-size:12px;
-  font-weight:700;
-}
-.desc { color:#555; font-size:13px; }
-.skills { display:flex; flex-wrap:wrap; gap:6px; }
-.skills span {
-  background:#f5f5f5;
-  color:#333;
-  padding:4px 8px;
-  border-radius:10px;
-  font-size:12px;
-}
-.skills .more { color:#777; }
-.btn.full { width:100%; text-align:center; }
-.btn { border:none; border-radius:10px; padding:10px 12px; font-weight:600; cursor:pointer; }
-.btn.primary { background:#50145c; color:#fff; box-shadow: 0 6px 16px rgba(6,6,10,0.12); }
-
-.pagination {
-  margin-top: 18px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
-}
-.pagination button {
-  padding:10px 14px;
-  border-radius:12px;
-  border:none;
-  background:#fff;
-  cursor:pointer;
-  box-shadow: 0 6px 16px rgba(6,6,10,0.12);
-}
-.pagination span {
-  color:#fff;
-  font-weight:700;
-  letter-spacing: 1px;
-}
-
-@media (max-width: 1000px) {
-  .cards-grid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 720px) {
-  .cards-grid { grid-template-columns: 1fr; }
 }
 </style>

@@ -2,47 +2,31 @@
 <template>
   <div class="home-gradient text-white min-h-screen">
     <!-- NAVBAR -->
-    <header class="nav-wrap">
-      <div class="nav-bar">
-        <div class="nav-left">
-          <span class="brand">Porto Connect</span>
-          <img src="@/assets/logo-soegija.png" alt="soegija" class="nav-logo" />
+    <header class="fixed top-6 left-0 right-0 z-50">
+      <nav class="max-w-6xl mx-auto py-3 px-6 bg-white rounded-full flex justify-between items-center shadow-lg">
+        <div class="flex items-center gap-3">
+          <span class="text-xl font-bold font-poppins text-purple-700">Porto Connect</span>
+          <img src="@/assets/logo-soegija.png" alt="Soegijapranata Logo" class="h-8" />
         </div>
 
-        <div class="nav-center">
-          <router-link to="/" class="nav-link active">Home</router-link>
-          <router-link
-            v-if="!currentUser || currentUser.role === 'mahasiswa'"
-            to="/explore"
-            class="nav-link"
-          >
-            Portofolio
-          </router-link>
+        <div class="hidden md:flex items-center gap-8 font-roboto">
+          <router-link to="/" class="text-gray-700 hover:text-purple-700 transition">Home</router-link>
+          <router-link v-if="!currentUser || currentUser.role !== 'perusahaan'" to="/explore" class="text-gray-700 hover:text-purple-700 transition">Portofolio</router-link>
         </div>
 
-        <div class="nav-right">
-          <template v-if="currentUser">
-            <template v-if="currentUser.role === 'mahasiswa'">
-              <router-link to="/profile/mahasiswa" class="user-name">Dashboard</router-link>
-              <span class="sep">|</span>
-              <button class="user-name logout" @click="handleLogout">Logout</button>
-            </template>
-            <template v-else-if="currentUser.role === 'perusahaan'">
-              <router-link to="/dashboard/perusahaan" class="user-name">Dashboard</router-link>
-              <span class="sep">|</span>
-              <button class="user-name logout" @click="handleLogout">Logout</button>
-            </template>
-            <template v-else>
-              <router-link to="/dashboard/admin" class="user-name">Dashboard</router-link>
-              <span class="sep">|</span>
-              <button class="user-name logout" @click="handleLogout">Logout</button>
-            </template>
-          </template>
+        <div class="flex items-center gap-1 bg-black rounded-full py-1.5 px-2 font-roboto">
+          <div v-if="currentUser">
+            <router-link v-if="currentUser.role === 'mahasiswa'" to="/profile/mahasiswa" class="py-1.5 px-4 rounded-full hover:bg-gray-800 transition">Dashboard Saya</router-link>
+            <router-link v-else-if="currentUser.role === 'perusahaan'" to="/dashboard/perusahaan" class="py-1.5 px-4 rounded-full hover:bg-gray-800 transition">Dashboard</router-link>
+            <button @click="handleLogout" class="py-1.5 px-4 rounded-full bg-white text-black hover:bg-gray-200 transition">Logout</button>
+          </div>
+
           <template v-else>
-            <router-link to="/login" class="user-name">Sign Up | Login</router-link>
+            <router-link to="/register" class="py-1.5 px-4 rounded-full hover:bg-gray-800 transition">Sign Up</router-link>
+            <router-link to="/login" class="py-1.5 px-4 rounded-full bg-white text-black hover:bg-gray-200 transition">Login</router-link>
           </template>
         </div>
-      </div>
+      </nav>
     </header>
 
     <!-- HERO -->
@@ -101,34 +85,43 @@
     </section>
 
     <!-- FOOTER -->
-    <footer class="bg-[#50145c] text-white py-16 font-roboto">
-      <div class="max-w-6xl mx-auto px-6">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-8">
-          <!-- Informasi Kontak di kiri -->
+    <footer class="bg-purple-900 text-white py-16 font-roboto">
+      <div class="max-w-6xl mx-auto px-6 flex flex-col items-center justify-center gap-12">
+
+        <!-- LOGO BAR SEPERTI GAMBAR -->
+        <div class="flex items-center justify-center gap-10 md:gap-14">
+
+          <!-- Porto Connect -->
+          <div class="text-center">
+            <p class="text-2xl font-poppins font-semibold leading-tight">Porto<br />Connect</p>
+          </div>
+
+          <!-- Icon X (garis silang) -->
           <div>
-            <h3 class="text-2xl md:text-3xl font-bold font-poppins mb-4">Informasi Kontak</h3>
-            <ul class="space-y-2 text-gray-300">
-              <li>Email : <a href="mailto:unika@unika.ac.id" class="hover:text-purple-300 transition">unika@unika.ac.id</a></li>
-              <li>Hotline : (024) 850 5003</li>
-              <li>WhatsApp Official : <a href="https://wa.me/6281232345479" class="hover:text-purple-300 transition">08123 2345 479</a></li>
-            </ul>
+            <svg width="55" height="55" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+              <path d="M20 20 L80 80 M80 20 L20 80" stroke="white" stroke-width="8" stroke-linecap="round" />
+            </svg>
+          </div>
+
+          <!-- Logo S + Text Universitas -->
+          <div class="flex items-center gap-4">
+            <img src="@/assets/logo-soegija-putih.png" class="h-14 w-auto" alt="Logo Soegija">
+            <div class="leading-tight">
+            </div>
           </div>
         </div>
 
-        <!-- Logo bar di tengah bawah -->
-        <div class="flex items-center justify-center gap-4 mb-8">
-          <div class="flex flex-col text-3xl font-poppins text-white">
-            <span>Porto</span>
-            <span>Connect</span>
-          </div>
-          <span class="text-3xl text-white">×</span>
-          <div class="flex items-center gap-2">
-            <img src="@/assets/logo-soegija-putih.png" alt="Logo SCU" class="h-16" />
-          </div>
+        <!-- Informasi Kontak -->
+        <div class="text-center">
+          <h3 class="text-2xl font-bold font-poppins mb-4">Informasi Kontak</h3>
+          <ul class="space-y-1 text-gray-300">
+            <li>Email : <a href="mailto:unika@unika.ac.id" class="hover:text-purple-300 transition">unika@unika.ac.id</a></li>
+            <li>Hotline : (024) 850 5003</li>
+            <li>WhatsApp Official : <a href="https://wa.me/6281232345479" class="hover:text-purple-300 transition">08123 2345 479</a></li>
+          </ul>
         </div>
 
-        <!-- Copyright di bawah -->
-        <div class="border-t border-purple-800 pt-8 text-center text-gray-500 text-sm">
+        <div class="border-t border-purple-800 pt-6 text-center text-gray-400 text-sm w-full">
           © 2025 PortoConnect. All rights reserved.
         </div>
       </div>
@@ -144,7 +137,6 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import FolderGrip from '@/components/FolderGrip.vue'
-import { logger } from '@/utils/logger'
 
 const router = useRouter()
 const currentUser = ref(null)
@@ -157,7 +149,7 @@ onMounted(async () => {
       const res = await axios.get('/api/me')
       currentUser.value = res.data.user
     } catch (err) {
-      logger.warn('Error fetching /api/me:', err)
+      console.warn('Error fetching /api/me:', err)
     }
   }
 })
@@ -171,9 +163,9 @@ const handleLogout = async () => {
   try {
     await axios.post('/api/logout')
   } catch (err) {
-    logger.warn('Logout error:', err)
+    console.warn('Logout error:', err)
   } finally {
-    try { localStorage.removeItem('token') } catch (e) { logger.warn('localStorage remove error', e) }
+    try { localStorage.removeItem('token') } catch (e) { console.warn('localStorage remove error', e) }
     delete axios.defaults.headers.common['Authorization']
     currentUser.value = null
     router.push('/')
@@ -185,30 +177,6 @@ const handleLogout = async () => {
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;900&family=Roboto:wght@400&display=swap');
 .font-poppins { font-family: 'Poppins', sans-serif; }
 .font-roboto { font-family: 'Roboto', sans-serif; }
-
-/* NAVBAR */
-.nav-wrap { padding: 28px 0; }
-.nav-bar {
-  width: min(1200px, 94%);
-  margin: 0 auto;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  background: rgba(255,255,255,0.95);
-  border-radius: 26px;
-  padding: 12px 28px;
-  box-shadow: 0 8px 30px rgba(6,6,10,0.12);
-  height: 64px;
-}
-.nav-left, .nav-center, .nav-right { display:flex; align-items:center; gap:14px; }
-.brand { font-weight:700; color:#5e1f62; }
-.nav-logo { height:26px; }
-.nav-center { gap:28px; margin-left: 14px;}
-.nav-link { color:#222; opacity:0.9; }
-.nav-link.active { font-weight:700; }
-.user-name { color:#222; font-weight:600; }
-.sep { color:#999; }
-.logout { border:none; background:transparent; cursor:pointer; }
 
 /* HERO */
 .hero-title {
@@ -273,4 +241,3 @@ const handleLogout = async () => {
   .hero-title { font-size: 36px; -webkit-text-stroke: 3px #ffffff; }
 }
 </style>
-

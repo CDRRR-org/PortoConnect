@@ -1,27 +1,53 @@
 <template>
   <div class="min-h-screen dashboard-gradient flex flex-col">
     <!-- NAVBAR -->
-    <header class="nav-wrap">
-      <div class="nav-bar">
-        <div class="nav-left">
-          <span class="brand">Porto Connect</span>
-          <img src="@/assets/logo-soegija.png" alt="soegija" class="nav-logo" />
+    <header class="fixed top-6 left-0 right-0 z-50">
+      <nav class="max-w-6xl mx-auto py-3 px-6 bg-white rounded-full flex justify-between items-center shadow-lg">
+        <div class="flex items-center gap-3">
+          <span class="text-xl font-bold font-poppins text-purple-700">Porto Connect</span>
+          <img src="@/assets/logo-soegija.png" alt="Soegijapranata Logo" class="h-8" />
         </div>
 
-        <div class="nav-center">
-          <router-link to="/" class="nav-link">Home</router-link>
-          <router-link to="/explore" class="nav-link">Portofolio</router-link>
+        <div class="hidden md:flex items-center gap-8 font-roboto">
+          <router-link to="/" class="text-gray-700 hover:text-purple-700 transition">Home</router-link>
+          <router-link 
+            v-if="!user || user.role !== 'perusahaan'"
+            to="/explore" 
+            class="text-gray-700 hover:text-purple-700 transition"
+          >
+            Portofolio
+          </router-link>
         </div>
 
-        <div class="nav-right">
-          <template v-if="user">
-            <button class="user-name logout" @click="handleLogout">Logout</button>
-          </template>
+        <div class="flex items-center gap-1 bg-black rounded-full py-1.5 px-2 font-roboto">
+          <div v-if="user">
+            <router-link 
+              v-if="user.role === 'mahasiswa'" 
+              to="/profile/mahasiswa" 
+              class="py-1.5 px-4 rounded-full hover:bg-gray-800 transition text-white"
+            >
+              Dashboard Saya
+            </router-link>
+            <router-link 
+              v-else-if="user.role === 'perusahaan'" 
+              to="/dashboard/perusahaan" 
+              class="py-1.5 px-4 rounded-full hover:bg-gray-800 transition text-white"
+            >
+              Dashboard
+            </router-link>
+            <button 
+              @click="handleLogout" 
+              class="py-1.5 px-4 rounded-full bg-black text-white hover:bg-gray-800 transition"
+            >
+              Logout
+            </button>
+          </div>
+
           <template v-else>
-            <router-link to="/login" class="user-name">Sign Up | Login</router-link>
+            <router-link to="/login" class="py-1.5 px-4 rounded-full bg-black text-white hover:bg-gray-800 transition">Sign Up | Login</router-link>
           </template>
         </div>
-      </div>
+      </nav>
     </header>
 
     <!-- Main Content - Flex grow untuk push footer ke bawah -->
@@ -88,21 +114,17 @@
     </div>
 
     <!-- FOOTER -->
-    <footer class="bg-[#50145c] text-white py-16 font-roboto mt-auto">
+    <footer class="bg-purple-900 text-white py-16 font-roboto mt-auto">
       <div class="max-w-6xl mx-auto px-6">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-8">
-          <!-- Informasi Kontak di kiri -->
-          <div>
-            <h3 class="text-2xl md:text-3xl font-bold font-poppins mb-4">Informasi Kontak</h3>
-            <ul class="space-y-2 text-gray-300">
-              <li>Email : <a href="mailto:unika@unika.ac.id" class="hover:text-purple-300 transition">unika@unika.ac.id</a></li>
-              <li>Hotline : (024) 850 5003</li>
-              <li>WhatsApp Official : <a href="https://wa.me/6281232345479" class="hover:text-purple-300 transition">08123 2345 479</a></li>
-            </ul>
-          </div>
+        <div class="mb-12">
+          <h3 class="text-2xl md:text-3xl font-bold font-poppins mb-4">Informasi Kontak</h3>
+          <ul class="space-y-2 text-gray-300">
+            <li>Email : <a href="mailto:unika@unika.ac.id" class="hover:text-purple-300 transition">unika@unika.ac.id</a></li>
+            <li>Hotline : (024) 850 5003</li>
+            <li>WhatsApp Official : <a href="https://wa.me/6281232345479" class="hover:text-purple-300 transition">08123 2345 479</a></li>
+          </ul>
         </div>
 
-        <!-- Logo bar di tengah bawah -->
         <div class="flex items-center justify-center gap-4 mb-8">
           <div class="flex flex-col text-3xl font-poppins text-white">
             <span>Porto</span>
@@ -113,12 +135,9 @@
             <img src="@/assets/logo-soegija-putih.png" alt="Logo SCU" class="h-16" />
           </div>
         </div>
-
-        <!-- Copyright di bawah -->
-        <div class="border-t border-purple-800 pt-8 text-center text-gray-500 text-sm">
-          © 2025 PortoConnect. All rights reserved.
-        </div>
       </div>
+
+      <div class="border-t border-purple-800 mt-12 pt-8 text-center text-gray-500 text-sm">&copy; 2025 PortoConnect. All rights reserved.</div>
     </footer>
   </div>
 </template>
@@ -127,7 +146,6 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
-import { logger } from '@/utils/logger'
 
 const router = useRouter()
 const user = ref(null)
@@ -164,7 +182,7 @@ const loadData = async () => {
         return
       }
     } catch (roleError) {
-      logger.error('Error validating mahasiswa access:', roleError)
+      console.error('Error validating mahasiswa access:', roleError)
       if (roleError.response?.status === 401 || roleError.response?.status === 403) {
         localStorage.removeItem('token')
         router.push('/login')
@@ -176,7 +194,7 @@ const loadData = async () => {
     user.value = res.data.mahasiswa.user
     mahasiswa.value = res.data.mahasiswa
   } catch (error) {
-    logger.error('Error loading profile:', error)
+    console.error('Error loading profile:', error)
     if (error.response?.status === 401 || error.response?.status === 403) {
       localStorage.removeItem('token')
       router.push('/login')
@@ -209,29 +227,6 @@ const goToCreatePortfolio = () => {
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Roboto:wght@400&display=swap');
 .font-poppins { font-family: 'Poppins', sans-serif; }
 .font-roboto { font-family: 'Roboto', sans-serif; }
-
-.nav-wrap { padding: 28px 0; }
-.nav-bar {
-  width: min(1200px, 94%);
-  margin: 0 auto;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  background: rgba(255,255,255,0.95);
-  border-radius: 26px;
-  padding: 12px 28px;
-  box-shadow: 0 8px 30px rgba(6,6,10,0.12);
-  height: 64px;
-}
-.nav-left, .nav-center, .nav-right { display:flex; align-items:center; gap:14px; }
-.brand { font-weight:700; color:#5e1f62; }
-.nav-logo { height:26px; }
-.nav-center { gap:28px; margin-left: 14px;}
-.nav-link { color:#222; opacity:0.9; }
-.nav-link.active { font-weight:700; }
-.user-name { color:#222; font-weight:600; }
-.logout { border:none; background:transparent; cursor:pointer; }
-.sep { color:#999; }
 
 .dashboard-gradient {
   background: radial-gradient(

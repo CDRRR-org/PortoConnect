@@ -1,262 +1,375 @@
 <template>
-  <div class="page-portfolio">
+  <div class="min-h-screen dashboard-gradient">
     <!-- NAVBAR -->
-    <header class="nav-wrap">
-      <div class="nav-bar">
-        <div class="nav-left">
-          <span class="brand">Porto Connect</span>
-          <img src="@/assets/logo-soegija.png" alt="soegija" class="nav-logo" />
+    <header class="fixed top-6 left-0 right-0 z-50">
+      <nav class="max-w-6xl mx-auto py-3 px-6 bg-white rounded-full flex justify-between items-center shadow-lg">
+        <div class="flex items-center gap-3">
+          <span class="text-xl font-bold font-poppins text-purple-700">Porto Connect</span>
+          <img src="@/assets/logo-soegija.png" alt="Soegijapranata Logo" class="h-8" />
         </div>
 
-        <div class="nav-center">
-          <router-link to="/" class="nav-link">Home</router-link>
+        <div class="hidden md:flex items-center gap-8 font-roboto">
+          <router-link to="/" class="text-gray-700 hover:text-purple-700 transition">Home</router-link>
+          <router-link 
+            v-if="!currentUser || currentUser.role !== 'admin'"
+            to="/explore" 
+            class="text-gray-700 hover:text-purple-700 transition"
+          >
+            Portofolio
+          </router-link>
         </div>
 
-        <div class="nav-right">
-          <button class="user-name logout" @click="handleLogout">Logout</button>
+        <div class="flex items-center gap-4 font-roboto">
+          <div v-if="currentUser" class="py-1.5 px-4 rounded-full bg-black text-white hover:bg-gray-800 transition flex items-center gap-2">
+            <router-link 
+              to="/dashboard/admin" 
+              class="hover:underline"
+            >
+              Dashboard
+            </router-link>
+            <span>|</span>
+            <button 
+              @click="handleLogout" 
+              class="hover:underline cursor-pointer"
+            >
+              Logout
+            </button>
+          </div>
+
+          <template v-else>
+            <router-link to="/login" class="py-1.5 px-4 rounded-full hover:bg-gray-800 transition text-white bg-black rounded-full">Sign Up | Login</router-link>
+          </template>
         </div>
-      </div>
+      </nav>
     </header>
 
-    <!-- SEARCH ROW -->
-    <section class="search-row">
-      <div class="search-inner">
-        <div class="search-pill">Dashboard Admin</div>
-        <div class="search-input">Kelola user & portofolio</div>
-      </div>
-    </section>
-
-    <!-- MAIN -->
-    <main class="main-container">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-32">
       <!-- Tabs -->
-      <div class="tabs-card">
-        <div class="tabs">
+      <div class="bg-white rounded-lg shadow mb-6">
+        <div class="border-b border-gray-200">
+          <nav class="flex -mb-px">
             <button
               v-for="tab in tabs"
               :key="tab.id"
               @click="activeTab = tab.id"
-            :class="['tab-btn', activeTab === tab.id ? 'active' : '']"
+              :class="[
+                'px-6 py-3 text-sm font-medium border-b-2',
+                activeTab === tab.id
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ]"
             >
               {{ tab.label }}
             </button>
+          </nav>
         </div>
       </div>
 
-      <!-- HOME TAB -->
-      <section v-if="activeTab === 'home'" class="panel">
+      <!-- Home Tab -->
+      <div v-if="activeTab === 'home'">
       <!-- Stats -->
-        <div class="stats-grid">
-          <div class="stat-card" v-for="item in statItems" :key="item.label">
-            <h3>{{ item.label }}</h3>
-            <p>{{ item.value }}</p>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-4">
+          <h3 class="text-gray-600 text-sm">Total Users</h3>
+          <p class="text-2xl font-bold">{{ stats.total_users || 0 }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+          <h3 class="text-gray-600 text-sm">Mahasiswa</h3>
+          <p class="text-2xl font-bold">{{ stats.total_mahasiswa || 0 }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+          <h3 class="text-gray-600 text-sm">Perusahaan</h3>
+          <p class="text-2xl font-bold">{{ stats.total_perusahaan || 0 }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+          <h3 class="text-gray-600 text-sm">Admin</h3>
+          <p class="text-2xl font-bold">{{ stats.total_admin || 0 }}</p>
         </div>
       </div>
 
-        <!-- Users management -->
-        <div class="table-card">
-          <div class="table-header">
-            <h2>Manajemen Users</h2>
-            <div class="actions">
-              <input v-model="searchQuery" type="text" placeholder="Cari user..." />
-              <select v-model="roleFilter">
+      <!-- Users Table -->
+      <div class="bg-white rounded-lg shadow">
+        <div class="p-4 border-b flex justify-between items-center">
+          <h2 class="text-xl font-bold">Manajemen Users</h2>
+          <div class="flex gap-2">
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Cari user..."
+              class="border rounded-lg px-3 py-2"
+            />
+            <select v-model="roleFilter" class="border rounded-lg px-3 py-2">
               <option value="">Semua Role</option>
               <option value="mahasiswa">Mahasiswa</option>
               <option value="perusahaan">Perusahaan</option>
               <option value="admin">Admin</option>
             </select>
-              <button class="btn primary" @click="loadUsers">Cari</button>
-              <button class="btn success" @click="showCreateModal = true">+ Tambah User</button>
+            <button @click="loadUsers" class="bg-purple-700 text-white px-4 py-2 rounded-lg hover:bg-purple-800">
+              Cari
+            </button>
+            <button @click="showCreateModal = true" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+              + Tambah User
+            </button>
           </div>
         </div>
-
-          <div class="table-wrapper">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Nama</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Aksi</th>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
               </tr>
             </thead>
-              <tbody>
+            <tbody class="divide-y divide-gray-200">
               <tr v-for="user in paginatedUsers" :key="user.id">
-                  <td>{{ user.name }}</td>
-                  <td>{{ user.email }}</td>
-                  <td>{{ user.role }}</td>
-                  <td>
-                    <span :class="user.email_verified_at ? 'status success' : 'status danger'">
+                <td class="px-4 py-3">{{ user.name }}</td>
+                <td class="px-4 py-3">{{ user.email }}</td>
+                <td class="px-4 py-3">{{ user.role }}</td>
+                <td class="px-4 py-3">
+                  <span :class="user.email_verified_at ? 'text-green-600' : 'text-red-600'">
                     {{ user.email_verified_at ? 'Verified' : 'Unverified' }}
                   </span>
                 </td>
-                  <td class="actions-cell">
+                <td class="px-4 py-3">
+                  <div class="flex gap-2">
                     <button 
                       v-if="!user.email_verified_at"
-                      class="link primary"
                       @click="verifyUser(user.id)" 
+                      class="text-blue-600 text-sm hover:underline"
                     >
                       Verify
                     </button>
-                    <button class="link danger" @click="deleteUser(user.id)">Hapus</button>
+                    <button @click="deleteUser(user.id)" class="text-red-600 text-sm hover:underline">
+                      Hapus
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-
         <!-- Pagination -->
-          <div v-if="users.length > itemsPerPage" class="pagination">
-            <div class="info">
-              Menampilkan
-              {{ (currentPage - 1) * itemsPerPage + 1 }}
-              -
-              {{ Math.min(currentPage * itemsPerPage, users.length) }}
-              dari {{ users.length }} users
+        <div v-if="users.length > 10" class="p-4 border-t flex justify-between items-center">
+          <div class="text-sm text-gray-600">
+            Menampilkan {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, users.length) }} dari {{ users.length }} users
           </div>
-            <div class="pager">
+          <div class="flex gap-2">
             <button 
               @click="currentPage = Math.max(1, currentPage - 1)"
               :disabled="currentPage === 1"
+              :class="currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'"
+              class="px-4 py-2 border rounded-lg"
             >
               Sebelumnya
             </button>
-              <span>Halaman {{ currentPage }} dari {{ totalPages }}</span>
+            <span class="px-4 py-2 text-gray-700">
+              Halaman {{ currentPage }} dari {{ totalPages }}
+            </span>
             <button 
               @click="currentPage = Math.min(totalPages, currentPage + 1)"
               :disabled="currentPage === totalPages"
+              :class="currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'"
+              class="px-4 py-2 border rounded-lg"
             >
               Selanjutnya
             </button>
           </div>
         </div>
       </div>
-      </section>
+    </div>
 
-      <!-- PORTFOLIOS TAB -->
-      <section v-if="activeTab === 'portfolios'" class="portfolio-section">
-        <div class="main-wrap">
-          <!-- Sidebar -->
-          <aside class="left-sidebar">
-            <div class="sidebar-scroll">
-              <div
-                class="sidebar-item"
-                :class="{ active: selectedBidang === null }"
+      <!-- Portfolios Tab -->
+      <div v-if="activeTab === 'portfolios'">
+        <div class="flex gap-6">
+          <!-- Sidebar Kategori -->
+          <aside class="w-64 bg-white rounded-lg shadow-sm p-4 h-fit mt-8">
+            <h3 class="font-bold text-gray-800 mb-4">Kategori Bidang</h3>
+            <ul class="space-y-2">
+              <li>
+                <button
                   @click="filterByBidang(null)"
-              >
-                <span class="si-text">Semua</span>
-                <span class="si-count">{{ totalPortfolios }}</span>
-              </div>
-              <div
-                class="sidebar-item"
-                :class="{ active: selectedBidang === 'backend' }"
+                  :class="selectedBidang === null ? 'bg-purple-100 text-purple-700 font-semibold' : 'text-gray-700 hover:bg-gray-100'"
+                  class="w-full text-left px-4 py-2 rounded-lg flex items-center gap-2 transition"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Semua Bidang
+                  <span class="ml-auto text-sm text-gray-500">({{ totalPortfolios }})</span>
+                </button>
+              </li>
+              <li>
+                <button
                   @click="filterByBidang('backend')"
-              >
-                <span class="si-text">Backend</span>
-                <span class="si-count">{{ getCountByBidang('backend') }}</span>
-              </div>
-              <div
-                class="sidebar-item"
-                :class="{ active: selectedBidang === 'frontend' }"
+                  :class="selectedBidang === 'backend' ? 'bg-purple-100 text-purple-700 font-semibold' : 'text-gray-700 hover:bg-gray-100'"
+                  class="w-full text-left px-4 py-2 rounded-lg flex items-center gap-2 transition"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Backend
+                  <span class="ml-auto text-sm text-gray-500">({{ getCountByBidang('backend') }})</span>
+                </button>
+              </li>
+              <li>
+                <button
                   @click="filterByBidang('frontend')"
-              >
-                <span class="si-text">Frontend</span>
-                <span class="si-count">{{ getCountByBidang('frontend') }}</span>
-              </div>
-              <div
-                class="sidebar-item"
-                :class="{ active: selectedBidang === 'fullstack' }"
+                  :class="selectedBidang === 'frontend' ? 'bg-purple-100 text-purple-700 font-semibold' : 'text-gray-700 hover:bg-gray-100'"
+                  class="w-full text-left px-4 py-2 rounded-lg flex items-center gap-2 transition"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Frontend
+                  <span class="ml-auto text-sm text-gray-500">({{ getCountByBidang('frontend') }})</span>
+                </button>
+              </li>
+              <li>
+                <button
                   @click="filterByBidang('fullstack')"
-              >
-                <span class="si-text">Fullstack</span>
-                <span class="si-count">{{ getCountByBidang('fullstack') }}</span>
-              </div>
-              <div
-                class="sidebar-item"
-                :class="{ active: selectedBidang === 'QATester' }"
+                  :class="selectedBidang === 'fullstack' ? 'bg-purple-100 text-purple-700 font-semibold' : 'text-gray-700 hover:bg-gray-100'"
+                  class="w-full text-left px-4 py-2 rounded-lg flex items-center gap-2 transition"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Fullstack
+                  <span class="ml-auto text-sm text-gray-500">({{ getCountByBidang('fullstack') }})</span>
+                </button>
+              </li>
+              <li>
+                <button
                   @click="filterByBidang('QATester')"
-              >
-                <span class="si-text">QA Tester</span>
-                <span class="si-count">{{ getCountByBidang('QATester') }}</span>
-              </div>
-            </div>
+                  :class="selectedBidang === 'QATester' ? 'bg-purple-100 text-purple-700 font-semibold' : 'text-gray-700 hover:bg-gray-100'"
+                  class="w-full text-left px-4 py-2 rounded-lg flex items-center gap-2 transition"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  QA Tester
+                  <span class="ml-auto text-sm text-gray-500">({{ getCountByBidang('QATester') }})</span>
+                </button>
+              </li>
+            </ul>
           </aside>
 
-          <!-- Cards panel -->
-          <section class="cards-panel">
-            <div class="cards-inner">
-              <div class="cards-grid">
-                <article
+          <!-- Main Content -->
+          <main class="flex-1">
+            <h2 class="text-3xl font-bold text-white mb-6">Manajemen Portofolio</h2>
+            
+            <!-- Portfolio Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div
                 v-for="portfolio in paginatedPortfolios"
                 :key="portfolio.id"
-                  class="card simple-card"
+                class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow transform hover:scale-105 relative"
               >
-                  <div class="card-thumb">
-                    <span class="dot"></span>
+                <!-- Delete Button -->
                 <button
                   @click.stop="confirmDelete(portfolio)"
-                      class="delete-btn"
+                  class="absolute top-2 right-2 z-10 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
                   title="Hapus Portofolio"
                 >
-                      ×
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
+
+                <!-- Header dengan gradient background -->
+                <div class="h-32 bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 relative">
+                  <div class="absolute inset-0 bg-black/20"></div>
+                  <div class="absolute bottom-4 left-4 right-4">
+                    <h3 class="text-white font-bold text-lg">{{ portfolio.nama || 'Portofolio' }}</h3>
                   </div>
-                  <div class="card-footer">
-                    <div class="card-avatar">
-                      <span>{{ (portfolio.mahasiswa?.user?.name || 'U').charAt(0) }}</span>
                 </div>
-                    <div class="card-texts">
-                      <div class="card-name">{{ portfolio.mahasiswa?.user?.name || portfolio.nama }}</div>
-                      <div class="card-sub">{{ portfolio.mahasiswa?.universitas || portfolio.mahasiswa?.jurusan || 'Portofolio Baru' }}</div>
+
+                <!-- Content -->
+                <div class="p-4">
+                  <div class="flex items-start gap-3 mb-3">
+                    <!-- Profile Picture -->
+                    <div class="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+                      {{ portfolio.mahasiswa?.user?.name?.charAt(0)?.toUpperCase() || 'U' }}
                     </div>
-                    <div class="card-icon">●</div>
+                    <div class="flex-1 min-w-0">
+                      <h4 class="font-bold text-gray-800 truncate">{{ portfolio.mahasiswa?.user?.name }}</h4>
+                      <p class="text-sm text-gray-600">{{ portfolio.mahasiswa?.universitas || portfolio.mahasiswa?.jurusan || '-' }}</p>
                     </div>
-                  <div class="card-body">
-                    <div class="badge">{{ portfolio.bidang || 'Portofolio' }}</div>
-                    <p v-if="portfolio.deskripsi" class="desc line-clamp-2">
+                    <!-- Public Icon -->
+                    <svg v-if="portfolio.is_public" class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                    </svg>
+                  </div>
+
+                  <!-- Bidang Badge -->
+                  <div v-if="portfolio.bidang" class="mb-3">
+                    <span class="inline-block bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-semibold">
+                      {{ portfolio.bidang }}
+                    </span>
+                  </div>
+
+                  <!-- Deskripsi Singkat -->
+                  <p v-if="portfolio.deskripsi" class="text-sm text-gray-600 mb-3 line-clamp-2">
                     {{ portfolio.deskripsi }}
                   </p>
-                    <div v-if="portfolio.skills && portfolio.skills.length" class="skills">
+
+                  <!-- Skills -->
+                  <div v-if="portfolio.skills && portfolio.skills.length > 0" class="flex flex-wrap gap-2">
                     <span
                       v-for="skill in portfolio.skills.slice(0, 3)"
                       :key="skill.id"
+                      class="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded"
                     >
                       {{ skill.nama }}
                     </span>
-                      <span v-if="portfolio.skills.length > 3" class="more">+{{ portfolio.skills.length - 3 }}</span>
+                    <span v-if="portfolio.skills.length > 3" class="text-xs text-gray-500">
+                      +{{ portfolio.skills.length - 3 }} lainnya
+                    </span>
                   </div>
-                    <button class="btn primary full" @click.stop="viewPortfolio(portfolio)">
+
+                  <!-- View Button -->
+                  <button
+                    @click="viewPortfolio(portfolio)"
+                    class="mt-4 w-full bg-purple-700 text-white px-4 py-2 rounded-lg hover:bg-purple-800 transition-colors"
+                  >
                     Lihat Portofolio
                   </button>
                 </div>
-                </article>
+              </div>
             </div>
 
-              <div v-if="filteredPortfolios.length === 0" class="empty-state">
-                Tidak ada portofolio yang ditemukan
+            <div v-if="filteredPortfolios.length === 0" class="text-center text-gray-500 py-12">
+              <p>Tidak ada portofolio yang ditemukan</p>
             </div>
 
             <!-- Pagination -->
-              <div v-if="filteredPortfolios.length > itemsPerPagePortfolio" class="cards-pagination">
+            <div v-if="filteredPortfolios.length > 6" class="mt-6 flex justify-center items-center gap-2">
               <button 
                 @click="currentPagePortfolio = Math.max(1, currentPagePortfolio - 1)"
                 :disabled="currentPagePortfolio === 1"
+                :class="currentPagePortfolio === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'"
+                class="px-4 py-2 border rounded-lg bg-white text-gray-700"
               >
                 ←
               </button>
-                <span>{{ currentPagePortfolio }} / {{ totalPagesPortfolio }}</span>
+              <span class="px-4 py-2 text-gray-700 bg-white border rounded-lg text-sm">
+                {{ currentPagePortfolio }} / {{ totalPagesPortfolio }}
+              </span>
               <button 
                 @click="currentPagePortfolio = Math.min(totalPagesPortfolio, currentPagePortfolio + 1)"
                 :disabled="currentPagePortfolio === totalPagesPortfolio"
+                :class="currentPagePortfolio === totalPagesPortfolio ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'"
+                class="px-4 py-2 border rounded-lg bg-white text-gray-700"
               >
                 →
               </button>
             </div>
+          </main>
         </div>
-          </section>
       </div>
-      </section>
-    </main>
+    </div>
 
     <!-- Modal Create User -->
     <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -450,25 +563,30 @@
     </div>
 
     <!-- FOOTER -->
-    <footer class="page-footer">
-      <div class="footer-inner">
-        <div class="contact">
-          <h3>Informasi Kontak</h3>
-          <div class="c-line">Email : <a href="mailto:unika@unika.ac.id">unika@unika.ac.id</a></div>
-          <div class="c-line">Hotline : (024) 850 5003</div>
-          <div class="c-line">WhatsApp Official : <a href="https://wa.me/6281232345479">08123 2345 479</a></div>
+    <footer class="bg-purple-900 text-white py-16 font-roboto">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="mb-12">
+          <h3 class="text-2xl md:text-3xl font-bold font-poppins mb-4">Informasi Kontak</h3>
+          <ul class="space-y-2 text-gray-300">
+            <li>Email : <a href="mailto:unika@unika.ac.id" class="hover:text-purple-300 transition">unika@unika.ac.id</a></li>
+            <li>Hotline : (024) 850 5003</li>
+            <li>WhatsApp Official : <a href="https://wa.me/6281232345479" class="hover:text-purple-300 transition">08123 2345 479</a></li>
+          </ul>
         </div>
 
-        <div class="footer-logos">
-          <div class="porto">Porto<br/>Connect</div>
-          <div class="x">✕</div>
-          <div class="uni">
-            <img src="@/assets/logo-soegija-putih.png" alt="SCU" />
+        <div class="flex items-center justify-center gap-4 mb-8">
+          <div class="flex flex-col text-3xl font-poppins text-white">
+            <span>Porto</span>
+            <span>Connect</span>
+          </div>
+          <span class="text-3xl text-white">×</span>
+          <div class="flex items-center gap-2">
+            <img src="@/assets/logo-soegija-putih.png" alt="Logo SCU" class="h-16" />
           </div>
         </div>
-
-        <div class="copy">© 2025 PortoConnect. All rights reserved.</div>
       </div>
+
+      <div class="border-t border-purple-800 mt-12 pt-8 text-center text-gray-500 text-sm">&copy; 2025 PortoConnect. All rights reserved.</div>
     </footer>
   </div>
 </template>
@@ -478,8 +596,6 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { useSweetAlert } from '@/composables/useSweetAlert'
-import { logger } from '@/utils/logger'
-const fallbackImage = new URL('@/assets/card-sample.jpg', import.meta.url).href
 
 const { showSuccess, showError, showWarning, showConfirm } = useSweetAlert()
 
@@ -564,7 +680,7 @@ onMounted(async () => {
     await loadUsers()
     await loadPortfolios()
   } catch (error) {
-    logger.error('Error validating admin access:', error)
+    console.error('Error validating admin access:', error)
     if (error.response?.status === 401 || error.response?.status === 403) {
       localStorage.removeItem('token')
       router.push('/login')
@@ -579,7 +695,7 @@ const loadStats = async () => {
     const res = await axios.get('/api/admin/dashboard-stats')
     stats.value = res.data
   } catch (error) {
-    logger.error('Error loading stats:', error)
+    console.error('Error loading stats:', error)
   }
 }
 
@@ -594,25 +710,26 @@ const loadUsers = async () => {
     // Reset to first page when loading new data
     currentPage.value = 1
   } catch (error) {
-    logger.error('Error loading users:', error)
+    console.error('Error loading users:', error)
   }
 }
 
-const ensureAllPortfolios = async () => {
-  if (allPortfolios.value.length) return
+const loadPortfolios = async (bidang = null) => {
+  try {
+    const params = bidang ? { bidang } : {}
+    const response = await axios.get('/api/admin/portfolios', { params })
+    portfolios.value = response.data.portfolios || []
+    
+    // Reset to first page when loading new data
+    currentPagePortfolio.value = 1
+    
+    // Load all portfolios for counting if not already loaded
+    if (allPortfolios.value.length === 0) {
       const allResponse = await axios.get('/api/admin/portfolios')
       allPortfolios.value = allResponse.data.portfolios || []
     }
-
-const loadPortfolios = async (bidang = null) => {
-  try {
-    await ensureAllPortfolios()
-    portfolios.value = bidang
-      ? allPortfolios.value.filter(p => p.bidang === bidang)
-      : allPortfolios.value
-    currentPagePortfolio.value = 1
   } catch (error) {
-    logger.error('Error loading portfolios:', error)
+    console.error('Error loading portfolios:', error)
   }
 }
 
@@ -748,7 +865,7 @@ const copyToClipboard = async (text) => {
     await navigator.clipboard.writeText(text)
     showSuccess('Link berhasil disalin ke clipboard!')
   } catch (error) {
-    logger.error('Failed to copy:', error)
+    console.error('Failed to copy:', error)
     showError('Gagal menyalin link')
   }
 }
@@ -766,391 +883,19 @@ const handleLogout = async () => {
 </script>
 
 <style scoped>
-.page-portfolio {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: radial-gradient( circle at 50% -20%,
-    #000 2%,
-    #50145c 18%,
-    #50145c 36%,
-    #50145c 50%,
-    #ffffff 100%
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dashboard-gradient {
+  background: radial-gradient(
+    ellipse 160% 120% at 50% -55%,
+    #000000 48%,
+    #50145C 60%,
+    #ffffff 80%
   );
-  color: #111;
-  font-family: 'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-}
-
-/* NAVBAR */
-.nav-wrap { padding: 28px 0; }
-.nav-bar {
-  width: min(1200px, 94%);
-  margin: 0 auto;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  background: rgba(255,255,255,0.95);
-  border-radius: 26px;
-  padding: 12px 28px;
-  box-shadow: 0 8px 30px rgba(6,6,10,0.12);
-  height: 64px;
-}
-.nav-left, .nav-center, .nav-right { display:flex; align-items:center; gap:14px; }
-.brand { font-weight:700; color:#5e1f62; }
-.nav-logo { height:26px; }
-.nav-center { gap:28px; margin-left: 14px;}
-.nav-link { color:#222; opacity:0.9; }
-.nav-link.active { font-weight:700; }
-.user-name { color:#222; font-weight:600; }
-.user-name.logout { cursor:pointer; }
-.sep { color:#222; }
-
-/* search row */
-.search-row { margin-top: 10px; }
-.search-inner {
-  width: min(1200px, 94%);
-  margin: 0 auto;
-  display:flex;
-  gap:18px;
-  align-items:center;
-  padding: 4px 12px;
-}
-.search-pill {
-  min-width:140px;
-  padding:10px 18px;
-  border-radius:999px;
-  background: #ffffff;
-  border:none;
-  box-shadow: 0 8px 20px rgba(6,6,10,0.06);
-}
-.search-input {
-  flex:1;
-  min-height: 42px;
-  border-radius: 999px;
-  padding: 0 20px;
-  border: 2px solid rgba(0,0,0,0.8);
-  background: white;
-  color: #222;
-  box-shadow: 0 8px 20px rgba(6,6,10,0.06);
-  display:flex;
-  align-items:center;
-}
-
-/* MAIN CONTAINER */
-.main-container {
-  width: min(1200px, 94%);
-  margin: 24px auto 0;
-  flex: 1;
-}
-
-/* Tabs */
-.tabs-card {
-  background: rgba(255,255,255,0.9);
-  border-radius: 16px;
-  box-shadow: 0 16px 40px rgba(6,6,10,0.08);
-  padding: 12px;
-  margin-bottom: 18px;
-}
-.tabs {
-  display:flex;
-  gap: 8px;
-}
-.tab-btn {
-  padding: 10px 16px;
-  border-radius: 12px;
-  border: none;
-  background: transparent;
-  font-weight: 600;
-  color: #333;
-  cursor: pointer;
-}
-.tab-btn.active {
-  background: #50145c;
-  color: #fff;
-  box-shadow: 0 10px 20px rgba(6,6,10,0.16);
-}
-
-/* Panel */
-.panel {
-  background: rgba(255,255,255,0.9);
-  border-radius: 18px;
-  box-shadow: 0 20px 60px rgba(6,6,10,0.1);
-  padding: 18px;
-  margin-bottom: 24px;
-}
-
-/* Stats */
-.stats-grid {
-  display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-}
-.stat-card {
-  background: #fff;
-  border-radius: 14px;
-  padding: 14px 16px;
-  box-shadow: 0 12px 30px rgba(6,6,10,0.08);
-}
-.stat-card h3 { margin:0; font-size:13px; color:#666; }
-.stat-card p { margin:4px 0 0 0; font-size:24px; font-weight:700; color:#111; }
-
-/* Table card */
-.table-card {
-  margin-top: 18px;
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 16px 40px rgba(6,6,10,0.08);
-}
-.table-header {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding: 14px 16px;
-  border-bottom: 1px solid #eee;
-}
-.table-header h2 { margin:0; font-size:18px; font-weight:700; }
-.actions { display:flex; gap:8px; flex-wrap:wrap; }
-.actions input, .actions select {
-  border:1px solid #ddd;
-  border-radius:10px;
-  padding:8px 10px;
-}
-.btn { border:none; border-radius:10px; padding:9px 12px; font-weight:600; cursor:pointer; }
-.btn.primary { background:#50145c; color:#fff; }
-.btn.success { background:#16a34a; color:#fff; }
-.btn.danger { background:#ef4444; color:#fff; }
-
-.table-wrapper { overflow-x:auto; }
-.data-table { width:100%; border-collapse: collapse; }
-.data-table thead { background:#f8f8f8; }
-.data-table th, .data-table td {
-  padding: 12px 14px;
-  text-align:left;
-  border-bottom:1px solid #f0f0f0;
-  font-size:14px;
-}
-.status { padding:4px 10px; border-radius:999px; font-size:12px; font-weight:600; }
-.status.success { background:#e0f2f1; color:#0f766e; }
-.status.danger { background:#fee2e2; color:#b91c1c; }
-.actions-cell { display:flex; gap:10px; align-items:center; }
-.link { border:none; background:none; font-weight:600; cursor:pointer; }
-.link.primary { color:#2563eb; }
-.link.danger { color:#e11d48; }
-
-.pagination {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding: 20px 16px;
-  border-top:1px solid #eee;
-  color:#444;
-  margin-top: 12px;
-}
-.pager { display:flex; gap:10px; align-items:center; }
-.pager button {
-  padding:8px 12px;
-  border-radius:10px;
-  border:1px solid #ddd;
-  background:#fff;
-  cursor:pointer;
-}
-.pager button:disabled { opacity:0.5; cursor:not-allowed; }
-
-/* Cards pagination (portfolios) */
-.cards-pagination {
-  margin-top: 18px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
-}
-.cards-pagination button {
-  padding:10px 14px;
-  border-radius:12px;
-  border:none;
-  background:#fff;
-  cursor:pointer;
-  box-shadow: 0 6px 16px rgba(6,6,10,0.12);
-}
-.cards-pagination span {
-  color:#fff;
-  font-weight:700;
-  letter-spacing: 1px;
-}
-
-/* Portfolio section (cards) */
-.portfolio-section { margin-top: 12px; }
-.main-wrap {
-  display:grid;
-  grid-template-columns: 220px 1fr;
-  gap: 24px;
-  align-items:start;
-}
-.left-sidebar {
-  border-radius: 18px;
-  padding: 14px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
-  box-shadow: 0 20px 60px rgba(6,6,10,0.06);
-  height: calc(100vh - 360px);
-  overflow: hidden;
-}
-.sidebar-scroll { height:100%; overflow:auto; padding-right:8px; }
-.sidebar-item {
-  display:flex;
-  align-items:center;
-  gap:10px;
-  padding: 12px;
-  margin-bottom: 12px;
-  color: rgba(255,255,255,0.9);
-  opacity: 0.92;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: background 0.2s ease, transform 0.15s ease;
-}
-.sidebar-item.active, .sidebar-item:hover {
-  background: rgba(255,255,255,0.12);
-  transform: translateY(-2px);
-}
-.si-text { flex:1; }
-.si-count { font-weight:700; }
-
-.cards-panel {
-  border-radius: 26px;
-  background: linear-gradient(180deg, rgba(90,25,78,0.85), rgba(187,135,180,0.15));
-  padding: 24px;
-  box-shadow: 0 30px 80px rgba(6,6,10,0.12);
-}
-.cards-inner {
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.04));
-  padding: 18px;
-  border-radius: 18px;
-}
-.cards-grid {
-  display:grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 22px;
-  padding: 18px;
-  background: #50145c;
-  border-radius: 20px;
-  box-shadow: 0 30px 80px rgba(6,6,10,0.12);
-}
-.card {
-  background: #fff;
-  border-radius: 18px;
-  overflow: hidden;
-  box-shadow: 0 16px 40px rgba(6,6,10,0.08);
-  display:flex;
-  flex-direction:column;
-  min-height: 260px;
-  position: relative;
-}
-.card-thumb {
-  height: 32px;
-  background: transparent;
-  display:flex;
-  justify-content:flex-end;
-  align-items:flex-start;
-  padding: 8px;
-  position: relative;
-}
-.dot {
-  width: 8px;
-  height: 8px;
-  background: #d9d9d9;
-  border-radius: 999px;
-}
-.delete-btn {
-  position:absolute;
-  top:6px;
-  right:6px;
-  background:#ef4444;
-  color:#fff;
-  border:none;
-  width:26px;
-  height:26px;
-  border-radius:999px;
-  cursor:pointer;
-  box-shadow: 0 10px 20px rgba(239,68,68,0.25);
-}
-.card-footer {
-  display:flex;
-  align-items:center;
-  gap:12px;
-  padding: 12px 16px 0 16px;
-}
-.card-avatar {
-  width:44px; height:44px; border-radius:999px; background:#5e1f62; color:#fff;
-  display:flex; align-items:center; justify-content:center; font-weight:700; border:3px solid #fff;
-}
-.card-texts .card-name { font-weight:700; color:#111; }
-.card-sub { font-size:13px; color:#777; margin-top:4px; }
-.card-icon { margin-left:auto; color:#bbb; }
-
-.card-body { padding: 10px 16px 16px 16px; display:flex; flex-direction:column; gap:8px; }
-.badge {
-  display:inline-block;
-  background:#f3e8ff;
-  color:#5e1f62;
-  padding:6px 10px;
-  border-radius:999px;
-  font-size:12px;
-  font-weight:700;
-}
-.desc { color:#555; font-size:13px; }
-.skills { display:flex; flex-wrap:wrap; gap:6px; }
-.skills span {
-  background:#f5f5f5;
-  color:#333;
-  padding:4px 8px;
-  border-radius:10px;
-  font-size:12px;
-}
-.skills .more { color:#777; }
-.btn.full { width:100%; text-align:center; }
-
-.empty-state { margin-top:16px; color:#fff; text-align:center; }
-
-/* Footer */
-.page-footer {
-  margin-top: 48px;
-  background: #50145c;
-  color:#fff;
-  padding: 48px 0;
-}
-.footer-inner {
-  width: min(1200px, 94%);
-  margin: 0 auto;
-  display:flex;
-  flex-direction:column;
-  gap:28px;
-  align-items:center;
-}
-.contact { align-self:flex-start; }
-.contact h3 { margin:0 0 6px 0; font-weight:700; }
-.contact a { color:#fff; text-decoration: underline; }
-.footer-logos {
-  width:100%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:36px;
-  padding-top: 8px;
-}
-.porto { font-weight:700; font-size:20px; text-align:center; }
-.x { font-size:34px; color:#fff; transform:translateY(6px); }
-.uni img { height:48px; margin-right:12px; }
-.copy { border-top:1px solid rgba(255,255,255,0.2); padding-top:12px; color:rgba(255,255,255,0.8); width:100%; text-align:center; }
-
-/* responsive */
-@media (max-width: 1000px) {
-  .cards-grid { grid-template-columns: repeat(2, 1fr); }
-  .main-wrap { grid-template-columns: 160px 1fr; }
-}
-@media (max-width: 720px) {
-  .nav-bar { padding: 8px 14px; height:58px; }
-  .main-wrap { grid-template-columns: 1fr; }
-  .left-sidebar { display:none; }
-  .cards-grid { grid-template-columns: 1fr; }
-  .search-inner { flex-direction:column; gap:12px; align-items:stretch; }
 }
 </style>

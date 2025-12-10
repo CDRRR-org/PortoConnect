@@ -148,21 +148,17 @@
     </div>
 
     <!-- FOOTER -->
-    <footer class="bg-[#50145c] text-white py-16 font-roboto mt-auto">
+    <footer class="bg-purple-900 text-white py-16 font-roboto mt-auto">
       <div class="max-w-6xl mx-auto px-6">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-8">
-          <!-- Informasi Kontak di kiri -->
-          <div>
-            <h3 class="text-2xl md:text-3xl font-bold font-poppins mb-4">Informasi Kontak</h3>
-            <ul class="space-y-2 text-gray-300">
-              <li>Email : <a href="mailto:unika@unika.ac.id" class="hover:text-purple-300 transition">unika@unika.ac.id</a></li>
-              <li>Hotline : (024) 850 5003</li>
-              <li>WhatsApp Official : <a href="https://wa.me/6281232345479" class="hover:text-purple-300 transition">08123 2345 479</a></li>
-            </ul>
-          </div>
+        <div class="mb-12">
+          <h3 class="text-2xl md:text-3xl font-bold font-poppins mb-4">Informasi Kontak</h3>
+          <ul class="space-y-2 text-gray-300">
+            <li>Email : <a href="mailto:unika@unika.ac.id" class="hover:text-purple-300 transition">unika@unika.ac.id</a></li>
+            <li>Hotline : (024) 850 5003</li>
+            <li>WhatsApp Official : <a href="https://wa.me/6281232345479" class="hover:text-purple-300 transition">08123 2345 479</a></li>
+          </ul>
         </div>
 
-        <!-- Logo bar di tengah bawah -->
         <div class="flex items-center justify-center gap-4 mb-8">
           <div class="flex flex-col text-3xl font-poppins text-white">
             <span>Porto</span>
@@ -173,12 +169,9 @@
             <img src="@/assets/logo-soegija-putih.png" alt="Logo SCU" class="h-16" />
           </div>
         </div>
-
-        <!-- Copyright di bawah -->
-        <div class="border-t border-purple-800 pt-8 text-center text-gray-500 text-sm">
-          © 2025 PortoConnect. All rights reserved.
-        </div>
       </div>
+
+      <div class="border-t border-purple-800 mt-12 pt-8 text-center text-gray-500 text-sm">&copy; 2025 PortoConnect. All rights reserved.</div>
     </footer>
   </div>
 </template>
@@ -187,7 +180,6 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
-import { logger } from '@/utils/logger'
 
 const router = useRouter()
 const route = useRoute()
@@ -225,7 +217,7 @@ const loadPortfolios = async () => {
     const res = await axios.get(`/api/mahasiswa/${mahasiswaId}/portfolios`)
     portfolios.value = res.data.portfolios || []
   } catch (err) {
-    logger.error('Error loading portfolios:', err)
+    console.error('Error loading portfolios:', err)
     portfolios.value = []
   } finally {
     portfoliosLoading.value = false
@@ -242,7 +234,7 @@ onMounted(async () => {
     // Load portfolios after profile is loaded
     await loadPortfolios()
   } catch (err) {
-    logger.error('Error loading profile:', err)
+    console.error('Error loading profile:', err)
     error.value = err.response?.data?.message || 'Gagal memuat profil'
   } finally {
     loading.value = false
