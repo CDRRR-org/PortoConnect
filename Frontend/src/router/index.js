@@ -2,6 +2,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [
+  // route name can be anything; component must point to actual file (src/pages/Home.vue)
   { path: '/', name: 'Home', component: () => import('@/pages/Home.vue') },
   { path: '/explore', name: 'Explore', component: () => import('@/pages/Explore.vue') },
 
